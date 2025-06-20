@@ -1,0 +1,24 @@
+title: Notes
+description: Testing things.
+author: Cottrell
+baseurl: "/notes"
+url: "https://cottrell.github.io"
+
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-mermaid
+
+markdown: kramdown
+highlighter: rouge
+
+# Enable MathJax globally
+mathjax: true
+
+# Enable Mermaid globally
+mermaid:
+  src: 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js'
+
+kramdown:
+  math_engine: mathjax
