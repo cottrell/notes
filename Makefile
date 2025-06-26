@@ -6,8 +6,11 @@ all:
 install:
 	bundle install
 
+dev:
+	bundle exec jekyll serve --baseurl="" --watch --livereload --host=0.0.0.0 --drafts
+
 serve:
-	bundle exec jekyll serve --baseurl="" --watch --livereload
+	bundle exec jekyll serve --baseurl="" --watch --livereload --host=0.0.0.0
 
 build:
 	bundle exec jekyll build
