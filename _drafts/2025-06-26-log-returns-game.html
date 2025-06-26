@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log Returns Optimization Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .choice-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        .choice-option {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            width: 350px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .choice-option:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        .choice-option.selected {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        .distribution-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .distribution-params {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .expected-log-return {
+            font-size: 16px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+            transition: width 0.3s ease;
+        }
+        .buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        .comparison-chart {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .chart-bar {
+            display: inline-block;
+            width: 100px;
+            margin: 0 10px;
+            text-align: center;
+        }
+        .bar {
+            width: 100%;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .bar-fill {
+            height: 20px;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .bar-fill.player { background: #007bff; }
+        .bar-fill.optimal { background: #28a745; }
+        .bar-fill.worst { background: #dc3545; }
+        .distribution-chart {
+            width: 300px;
+            height: 150px;
+            border: 1px solid #ddd;
+            margin: 10px auto;
+            border-radius: 5px;
+        }
+        .chart-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .wealth-chart {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .controls {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .toggle-btn {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #007bff;
+            border-radius: 3px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .toggle-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        .instruction {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Log Returns Optimization Game</h1>
+        <p>Choose between two return distributions to maximize your long-term wealth growth. The key is to pick the distribution with the highest expected log return!</p>
+        
+        <div class="game-stats">
+            <div class="stat">
+                <div class="stat-value" id="round-counter">1</div>
+                <div class="stat-label">Round</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="score">0</div>
+                <div class="stat-label">Score</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="accuracy">0%</div>
+                <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div class="stat-label">Streak</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
+        <div class="instruction">
+            Use ← → arrow keys or click to choose. Press L to toggle log view.
+        </div>
+        
+        <div class="controls">
+            <button class="toggle-btn active" id="linear-btn" onclick="toggleView('linear')">Linear View</button>
+            <button class="toggle-btn" id="log-btn" onclick="toggleView('log')">Log View</button>
+        </div>
+        
+        <div class="choice-container" id="choice-container">
+            <div class="choice-option" id="option-a" onclick="selectOption('A')">
+                <div class="distribution-title">Distribution A</div>
+                <canvas class="distribution-chart" id="chart-a" width="300" height="150"></canvas>
+                <div class="distribution-params" id="params-a"></div>
+                <div class="expected-log-return" id="log-return-a"></div>
+                <div class="chart-info" id="info-a"></div>
+            </div>
+            <div class="choice-option" id="option-b" onclick="selectOption('B')">
+                <div class="distribution-title">Distribution B</div>
+                <canvas class="distribution-chart" id="chart-b" width="300" height="150"></canvas>
+                <div class="distribution-params" id="params-b"></div>
+                <div class="expected-log-return" id="log-return-b"></div>
+                <div class="chart-info" id="info-b"></div>
+            </div>
+        </div>
+        
+        <canvas class="wealth-chart" id="wealth-chart" width="800" height="200"></canvas>
+        
+        <div class="buttons">
+            <button class="btn-secondary" onclick="resetGame()">Reset Game</button>
+        </div>
+        
+        <div class="results hidden" id="results">
+            <h3>Round Results</h3>
+            <p id="result-text"></p>
+            <button class="btn-primary" onclick="nextRound()">Next Round</button>
+        </div>
+        
+        <div class="comparison-chart" id="comparison-chart">
+            <h3>Performance Comparison</h3>
+            <div class="chart-bar">
+                <div>Your Choices</div>
+                <div class="bar">
+                    <div class="bar-fill player" id="player-bar"></div>
+                </div>
+                <span id="player-score">0</span>
+            </div>
+            <div class="chart-bar">
+                <div>Optimal Strategy</div>
+                <div class="bar">
+                    <div class="bar-fill optimal" id="optimal-bar"></div>
+                </div>
+                <span id="optimal-score">0</span>
+            </div>
+            <div class="chart-bar">
+                <div>Worst Strategy</div>
+                <div class="bar">
+                    <div class="bar-fill worst" id="worst-bar"></div>
+                </div>
+                <span id="worst-score">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            round: 1,
+            maxRounds: 20,
+            score: 0,
+            streak: 0,
+            selectedOption: null,
+            currentDistributions: null,
+            playerChoices: [],
+            optimalChoices: [],
+            worstChoices: [],
+            playerWealth: [1.0],
+            optimalWealth: [1.0],
+            worstWealth: [1.0],
+            viewMode: 'linear',
+            lastViewMode: null
+        };
+
+        // Utility functions for PDF generation
+        function linspace(min, max, n) {
+            return Array.from({ length: n }, (_, i) => min + (i / (n - 1)) * (max - min));
+        }
+
+        function randInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function cumSum(arr) {
+            let sum = 0;
+            return arr.map(x => sum += x);
+        }
+
+        function trapezoidalArea(xs, ys) {
+            let area = 0;
+            for (let i = 1; i < xs.length; i++) {
+                area += (xs[i] - xs[i - 1]) * (ys[i] + ys[i - 1]) / 2;
+            }
+            return area;
+        }
+
+        // Generate smooth PDF in log-return space
+        function generateLogReturnPDF(n = 200, xMin = Math.log(0.05), xMax = Math.log(5)) {
+            const xs = linspace(xMin, xMax, n);
+            const mode = randInt(20, n - 20); // Adjusted for smoother peaks
+
+            // Smooth deltas for more consistent curves
+            function smoothDeltas(deltas) {
+                const result = [];
+                for (let i = 0; i < deltas.length; i++) {
+                    const prev = deltas[i - 1] || deltas[i];
+                    const next = deltas[i + 1] || deltas[i];
+                    result.push((prev + deltas[i] + next) / 3);
+                }
+                return result;
+            }
+
+            const leftDeltas = smoothDeltas(Array.from({ length: mode }, () => Math.random()));
+            const left = cumSum(leftDeltas);
+            const rightDeltas = smoothDeltas(Array.from({ length: n - mode }, () => Math.random()));
+            const right = cumSum(rightDeltas).reverse();
+
+            const maxLeft = left[left.length - 1] || 1;
+            const maxRight = right[0] || 1;
+            const leftScaled = left.map(v => v / maxLeft);
+            const rightScaled = right.map(v => v / maxRight);
+            const ps = leftScaled.concat(rightScaled.slice(1));
+            const area = trapezoidalArea(xs, ps);
+            const normPs = ps.map(p => p / (area || 1));
+
+            // Compute expected log return using Simpson's rule for better accuracy
+            let expectedLogReturn = null;
+            const computeLogReturn = () => {
+                if (expectedLogReturn !== null) return expectedLogReturn;
+                let sum = 0;
+                for (let i = 1; i < xs.length; i += 2) {
+                    const x0 = xs[i - 1], x1 = xs[i], x2 = xs[i + 1] || xs[i];
+                    const p0 = normPs[i - 1], p1 = normPs[i], p2 = normPs[i + 1] || normPs[i];
+                    sum += (xs[i] - xs[i - 1]) * (x0 * p0 + 4 * x1 * p1 + x2 * p2) / 6;
+                }
+                expectedLogReturn = sum;
+                return expectedLogReturn;
+            };
+
+            // Sample using inverse CDF for efficiency
+            const cdf = cumSum(normPs.map((p, i) => p * (xs[i] - (xs[i - 1] || xMin))));
+            const maxCdf = cdf[cdf.length - 1] || 1;
+            const sample = () => {
+                const u = Math.random() * maxCdf;
+                for (let i = 0; i < cdf.length; i++) {
+                    if (u <= cdf[i]) return Math.exp(xs[i]);
+                }
+                return Math.exp(xs[xs.length - 1]);
+            };
+
+            return {
+                type: 'Custom',
+                xs,
+                ps: normPs,
+                minReturn: Math.exp(xMin),
+                maxReturn: Math.exp(xMax),
+                params: `Min=${Math.exp(xMin).toFixed(2)}, Max=${Math.exp(xMax).toFixed(1)}`,
+                sample,
+                getExpectedLogReturn: computeLogReturn
+            };
+        }
+
+        function generateDistributions() {
+            return { A: generateLogReturnPDF(), B: generateLogReturnPDF() };
+        }
+
+        function drawDistribution(canvasId, distribution) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = 'OffscreenCanvas' in window ? new OffscreenCanvas(canvas.width, canvas.height).getContext('2d') : canvas.getContext('2d');
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const margin = 20;
+            const plotWidth = width - 2 * margin;
+            const plotHeight = height - 2 * margin;
+
+            ctx.clearRect(0, 0, width, height);
+
+            let xs = distribution.xs;
+            let ps = distribution.ps;
+            let minValue = Math.min(...xs);
+            let maxValue = Math.max(...xs);
+
+            if (gameState.viewMode === 'linear') {
+                xs = xs.map(x => Math.exp(x));
+                ps = ps.map((p, i) => p / Math.max(xs[i], 0.001));
+                const maxPs = Math.max(...ps) || 1;
+                ps = ps.map(p => p / maxPs);
+                minValue = distribution.minReturn;
+                maxValue = distribution.maxReturn;
+            }
+
+            // Draw smooth curve
+            ctx.beginPath();
+            ctx.strokeStyle = gameState.viewMode === 'log' ? '#FF9800' : '#4CAF50';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < xs.length; i++) {
+                const x = margin + ((xs[i] - minValue) / (maxValue - minValue)) * plotWidth;
+                const y = height - margin - ps[i] * plotHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, height - margin);
+            ctx.stroke();
+
+            // X-axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 4; i++) {
+                const x = margin + (i / 4) * plotWidth;
+                const value = minValue + (i / 4) * (maxValue - minValue);
+                ctx.fillText(value.toFixed(gameState.viewMode === 'log' ? 2 : 1), x, height - 5);
+            }
+
+            // Draw break-even line
+            if (gameState.viewMode === 'log') {
+                if (minValue < 0 && maxValue > 0) {
+                    const breakEvenX = margin + (-minValue / (maxValue - minValue)) * plotWidth;
+                    ctx.strokeStyle = '#ff4444';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(breakEvenX, margin);
+                    ctx.lineTo(breakEvenX, height - margin);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            } else if (maxValue > 1) {
+                const breakEvenX = margin + ((1 - minValue) / (maxValue - minValue)) * plotWidth;
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(breakEvenX, margin);
+                ctx.lineTo(breakEvenX, height - margin);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            if ('OffscreenCanvas' in window) {
+                canvas.getContext('2d').drawImage(ctx.canvas, 0, 0);
+            }
+        }
+
+        function drawWealthChart() {
+            const canvas = document.getElementById('wealth-chart');
+            const ctx = 'OffscreenCanvas' in window ? new OffscreenCanvas(canvas.width, canvas.height).getContext('2d') : canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            const margin = 40;
+            const plotWidth = width - 2 * margin;
+            const plotHeight = height - 2 * margin;
+
+            if (gameState.playerWealth.length < 2) return;
+
+            const allWealth = [...gameState.playerWealth, ...gameState.optimalWealth, ...gameState.worstWealth];
+            const minWealth = Math.min(...allWealth);
+            const maxWealth = Math.max(...allWealth);
+            const wealthRange = maxWealth - minWealth || 1;
+
+            function getX(round) {
+                return margin + (round / (gameState.playerWealth.length - 1)) * plotWidth;
+            }
+
+            function getY(wealth) {
+                return height - margin - ((wealth - minWealth) / wealthRange) * plotHeight;
+            }
+
+            // Draw grid lines
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = margin + (i / 4) * plotHeight;
+                ctx.beginPath();
+                ctx.moveTo(margin, y);
+                ctx.lineTo(width - margin, y);
+                ctx.stroke();
+            }
+
+            // Draw wealth lines
+            function drawWealthLine(wealth, color, label) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < wealth.length; i++) {
+                    const x = getX(i);
+                    const y = getY(wealth[i]);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                if (wealth.length > 1) {
+                    const lastX = getX(wealth.length - 1);
+                    const lastY = getY(wealth[wealth.length - 1]);
+                    ctx.fillStyle = color;
+                    ctx.font = '12px Arial';
+                    ctx.fillText(label, lastX + 5, lastY);
+                }
+            }
+
+            drawWealthLine(gameState.playerWealth, '#007bff', 'Your Choices');
+            drawWealthLine(gameState.optimalWealth, '#28a745', 'Optimal');
+            drawWealthLine(gameState.worstWealth, '#dc3545', 'Worst');
+
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, height - margin);
+            ctx.stroke();
+
+            // Y-axis labels
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 4; i++) {
+                const y = height - margin - (i / 4) * plotHeight;
+                const value = minWealth + (i / 4) * wealthRange;
+                ctx.fillText(value.toFixed(2), margin - 5, y + 4);
+            }
+
+            // X-axis labels
+            ctx.textAlign = 'center';
+            ctx.fillText('Round', width / 2, height - 5);
+
+            // Title
+            ctx.textAlign = 'center';
+            ctx.font = '14px Arial';
+            ctx.fillText('Cumulative Wealth (Log Scale)', width / 2, 20);
+
+            if ('OffscreenCanvas' in window) {
+                canvas.getContext('2d').drawImage(ctx.canvas, 0, 0);
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const debouncedUpdateDisplay = debounce(updateDisplay, 100);
+
+        function updateDisplay() {
+            if (gameState.lastViewMode === gameState.viewMode && gameState.selectedOption) return;
+            gameState.lastViewMode = gameState.viewMode;
+
+            requestAnimationFrame(() => {
+                const dists = gameState.currentDistributions;
+
+                document.getElementById('params-a').textContent = dists.A.params;
+                document.getElementById('params-b').textContent = dists.B.params;
+                document.getElementById('log-return-a').textContent = `E[log(R)] = ${dists.A.getExpectedLogReturn().toFixed(3)}`;
+                document.getElementById('log-return-b').textContent = `E[log(R)] = ${dists.B.getExpectedLogReturn().toFixed(3)}`;
+                document.getElementById('info-a').textContent = `Type: ${dists.A.type}`;
+                document.getElementById('info-b').textContent = `Type: ${dists.B.type}`;
+                
+                drawDistribution('chart-a', dists.A);
+                drawDistribution('chart-b', dists.B);
+                drawWealthChart();
+                updateComparisonChart();
+
+                document.getElementById('round-counter').textContent = gameState.round;
+                document.getElementById('score').textContent = gameState.score;
+                document.getElementById('accuracy').textContent = `${Math.round(gameState.score / gameState.round * 100)}%`;
+                document.getElementById('streak').textContent = gameState.streak;
+
+                const progress = (gameState.round - 1) / gameState.maxRounds * 100;
+                document.getElementById('progress-fill').style.width = `${progress}%`;
+            });
+        }
+
+        function updateComparisonChart() {
+            const playerScore = gameState.playerChoices.reduce((sum, choice, i) => {
+                return sum + (choice === gameState.optimalChoices[i] ? 1 : 0);
+            }, 0);
+            
+            const optimalScore = gameState.optimalChoices.length;
+            const worstScore = gameState.worstChoices.reduce((sum, choice, i) => {
+                return sum + (choice === gameState.optimalChoices[i] ? 1 : 0);
+            }, 0);
+            
+            const maxScore = Math.max(playerScore, optimalScore, worstScore) || 1;
+            
+            document.getElementById('player-bar').style.width = `${(playerScore / maxScore) * 100}%`;
+            document.getElementById('optimal-bar').style.width = `${(optimalScore / maxScore) * 100}%`;
+            document.getElementById('worst-bar').style.width = `${(worstScore / maxScore) * 100}%`;
+            
+            document.getElementById('player-score').textContent = playerScore;
+            document.getElementById('optimal-score').textContent = optimalScore;
+            document.getElementById('worst-score').textContent = worstScore;
+        }
+
+        function toggleView(mode) {
+            gameState.viewMode = mode;
+            document.getElementById('linear-btn').classList.toggle('active', mode === 'linear');
+            document.getElementById('log-btn').classList.toggle('active', mode === 'log');
+            debouncedUpdateDisplay();
+        }
+
+        function selectOption(option) {
+            if (gameState.selectedOption) return;
+            
+            gameState.selectedOption = option;
+            
+            document.getElementById('option-a').classList.remove('selected');
+            document.getElementById('option-b').classList.remove('selected');
+            document.getElementById(`option-${option.toLowerCase()}`).classList.add('selected');
+            
+            setTimeout(() => {
+                confirmChoice();
+            }, 300);
+        }
+
+        function sampleFromDistribution(distribution) {
+            return distribution.sample();
+        }
+
+        function confirmChoice() {
+            if (!gameState.selectedOption) return;
+            
+            const dists = gameState.currentDistributions;
+            const isOptimal = gameState.selectedOption === 'A' ? 
+                dists.A.getExpectedLogReturn() > dists.B.getExpectedLogReturn() :
+                dists.B.getExpectedLogReturn() > dists.A.getExpectedLogReturn();
+            
+            if (isOptimal) {
+                gameState.score++;
+                gameState.streak++;
+            } else {
+                gameState.streak = 0;
+            }
+            
+            gameState.playerChoices.push(gameState.selectedOption);
+            gameState.optimalChoices.push(dists.A.getExpectedLogReturn() > dists.B.getExpectedLogReturn() ? 'A' : 'B');
+            gameState.worstChoices.push(dists.A.getExpectedLogReturn() < dists.B.getExpectedLogReturn() ? 'A' : 'B');
+            
+            const playerReturn = sampleFromDistribution(dists[gameState.selectedOption]);
+            const optimalChoice = dists.A.getExpectedLogReturn() > dists.B.getExpectedLogReturn() ? 'A' : 'B';
+            const worstChoice = dists.A.getExpectedLogReturn() < dists.B.getExpectedLogReturn() ? 'A' : 'B';
+            const optimalReturn = sampleFromDistribution(dists[optimalChoice]);
+            const worstReturn = sampleFromDistribution(dists[worstChoice]);
+            
+            const lastPlayerWealth = gameState.playerWealth[gameState.playerWealth.length - 1];
+            const lastOptimalWealth = gameState.optimalWealth[gameState.optimalWealth.length - 1];
+            const lastWorstWealth = gameState.worstWealth[gameState.worstWealth.length - 1];
+            
+            gameState.playerWealth.push(lastPlayerWealth * playerReturn);
+            gameState.optimalWealth.push(lastOptimalWealth * optimalReturn);
+            gameState.worstWealth.push(lastWorstWealth * worstReturn);
+            
+            const correctChoice = dists.A.getExpectedLogReturn() > dists.B.getExpectedLogReturn() ? 'A' : 'B';
+            const resultText = isOptimal ? 
+                `✓ Correct! Return: ${playerReturn.toFixed(3)}` :
+                `✗ Incorrect. Optimal was ${correctChoice}. Return: ${playerReturn.toFixed(3)}`;
+            
+            document.getElementById('result-text').textContent = resultText;
+            document.getElementById('results').classList.remove('hidden');
+            
+            debouncedUpdateDisplay();
+            
+            setTimeout(() => {
+                nextRound();
+            }, 800);
+        }
+
+        function nextRound() {
+            if (gameState.round >= gameState.maxRounds) {
+                endGame();
+                return;
+            }
+            
+            gameState.round++;
+            gameState.selectedOption = null;
+            
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('option-a').classList.remove('selected');
+            document.getElementById('option-b').classList.remove('selected');
+            
+            gameState.currentDistributions = generateDistributions();
+            debouncedUpdateDisplay();
+        }
+
+        function endGame() {
+            const finalScore = gameState.score;
+            const accuracy = Math.round(finalScore / gameState.maxRounds * 100);
+            const finalPlayerWealth = gameState.playerWealth[gameState.playerWealth.length - 1];
+            const finalOptimalWealth = gameState.optimalWealth[gameState.optimalWealth.length - 1];
+            const finalWorstWealth = gameState.worstWealth[gameState.worstWealth.length - 1];
+            
+            document.getElementById('choice-container').innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <h2>Game Complete!</h2>
+                    <p>Final Score: ${finalScore}/${gameState.maxRounds} (${accuracy}%)</p>
+                    <p><strong>Final Wealth:</strong></p>
+                    <p>Your Strategy: ${finalPlayerWealth.toFixed(2)}x</p>
+                    <p>Optimal Strategy: ${finalOptimalWealth.toFixed(2)}x</p>
+                    <p>Worst Strategy: ${finalWorstWealth.toFixed(2)}x</p>
+                    <p>Log Wealth Growth: ${Math.log(finalPlayerWealth).toFixed(3)} vs ${Math.log(finalOptimalWealth).toFixed(3)} (optimal)</p>
+                    <button class="btn-primary" onclick="resetGame()">Play Again</button>
+                </div>
+            `;
+        }
+
+        function resetGame() {
+            gameState = {
+                round: 1,
+                maxRounds: 20,
+                score: 0,
+                streak: 0,
+                selectedOption: null,
+                currentDistributions: null,
+                playerChoices: [],
+                optimalChoices: [],
+                worstChoices: [],
+                playerWealth: [1.0],
+                optimalWealth: [1.0],
+                worstWealth: [1.0],
+                viewMode: 'linear',
+                lastViewMode: null
+            };
+            
+            document.getElementById('choice-container').innerHTML = `
+                <div class="choice-option" id="option-a" onclick="selectOption('A')">
+                    <div class="distribution-title">Distribution A</div>
+                    <canvas class="distribution-chart" id="chart-a" width="300" height="150"></canvas>
+                    <div class="distribution-params" id="params-a"></div>
+                    <div class="expected-log-return" id="log-return-a"></div>
+                    <div class="chart-info" id="info-a"></div>
+                </div>
+                <div class="choice-option" id="option-b" onclick="selectOption('B')">
+                    <div class="distribution-title">Distribution B</div>
+                    <canvas class="distribution-chart" id="chart-b" width="300" height="150"></canvas>
+                    <div class="distribution-params" id="params-b"></div>
+                    <div class="expected-log-return" id="log-return-b"></div>
+                    <div class="chart-info" id="info-b"></div>
+                </div>
+            `;
+            
+            document.getElementById('results').classList.add('hidden');
+            
+            gameState.currentDistributions = generateDistributions();
+            debouncedUpdateDisplay();
+        }
+
+        // Keyboard and touch controls
+        document.addEventListener('keydown', (e) => {
+            if (gameState.selectedOption) return;
+            
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                selectOption('A');
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                selectOption('B');
+                e.preventDefault();
+            } else if (e.key === 'l' || e.key === 'L') {
+                toggleView(gameState.viewMode === 'linear' ? 'log' : 'linear');
+                e.preventDefault();
+            }
+        });
+
+        let touchStartX = null;
+        let touchStartY = null;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            if (!touchStartX || !touchStartY || gameState.selectedOption) return;
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                if (deltaX > 0) {
+                    selectOption('B');
+                } else {
+                    selectOption('A');
+                }
+                e.preventDefault();
+            }
+
+            touchStartX = null;
+            touchStartY = null;
+        }, { passive: false });
+
+        // Initialize game
+        gameState.currentDistributions = generateDistributions();
+        debouncedUpdateDisplay();
+    </script>
+</body>
+</html>

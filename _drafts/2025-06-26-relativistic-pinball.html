@@ -1,0 +1,1121 @@
+---
+layout: post
+title: "Relativistic Pinball Game"
+date: 2025-06-26
+categories: vibecoding
+---
+
+Nothing has been checked.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relativistic Pinball</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            margin-bottom: 10px;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            background: #000011;
+            max-width: 95vw;
+            max-height: 75vh;
+            object-fit: contain;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 100vw;
+        }
+        
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        #instructions {
+            margin-top: 10px;
+            max-width: 800px;
+            line-height: 1.4;
+            color: #aaa;
+        }
+        
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+        }
+        
+        button {
+            background: #003300;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background: #004400;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Relativistic Pinball</h1>
+        
+        <canvas id="gameCanvas" width="1600" height="1200"></canvas>
+    </div>
+    
+    <div id="controls">
+        <button onclick="resetGame()">(R)eset Game</button>
+        <button onclick="generateNewLevel()">(N)ew Level</button>
+        <button onclick="togglePhysicsInfo()">(P)hysics: OFF</button>
+        <button onclick="toggleSound()">(S)ound: ON</button>
+        <button onclick="togglePlanetMotion()">Planets: (M)oving</button>
+        <button onclick="toggleTemporalFrame()">(T)ime: Lab Frame</button>
+        <div style="margin-top: 10px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+            <div>
+                <label for="canvasSize">Canvas Size: </label>
+                <select id="canvasSize" onchange="changeCanvasSize()">
+                    <option value="small">Small (600x450)</option>
+                    <option value="medium" selected>Medium (800x600)</option>
+                    <option value="large">Large (1000x750)</option>
+                    <option value="xlarge">Extra Large (1200x900)</option>
+                </select>
+            </div>
+            <div>
+                <label for="simSpeed">Simulation Speed: </label>
+                <select id="simSpeed" onchange="changeSimSpeed()">
+                    <option value="1">1x (Normal)</option>
+                    <option value="2">2x (Fast)</option>
+                    <option value="3">3x (Faster)</option>
+                    <option value="4" selected>4x (Very Fast)</option>
+                    <option value="5">5x (Extreme)</option>
+                </select>
+            </div>
+        </div>
+        <div class="status" id="gameStatus">Click anywhere to launch balls! Rapid fire enabled.</div>
+    </div>
+    
+
+    <script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const gameStatus = document.getElementById('gameStatus');
+
+// Relativistic physics constants (scaled for game)
+const c = 200;           // Speed of light (game units)
+const G = 50;            // Gravitational constant (game units)
+const PLANCK_SCALE = 1;  // Planck scale for quantum effects
+
+// Game state
+let gameState = {
+    balls: [], // Array of active balls
+    planets: [],
+    target: null,
+    startPos: { x: 0, y: 0 }, // Starting position always visible
+    isAiming: false,
+    aimTarget: { x: 0, y: 0 },
+    showPhysicsInfo: false,
+    gameWon: false,
+    soundEnabled: true,
+    audioContext: null,
+    sounds: {},
+    simSpeed: 4, // simulation speed multiplier
+    planetsMoving: true, // whether planets move or are static
+    temporalFrame: 'lab', // 'lab' or 'ball' - which temporal reference frame
+    maxBalls: 10, // Maximum concurrent balls
+    shotCount: 0 // Total shots fired
+};
+
+// Initialize audio
+function initAudio() {
+    try {
+        gameState.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.log('Audio not supported');
+        gameState.soundEnabled = false;
+    }
+}
+
+// Create sound effect
+function createSound(frequency, duration, type = 'sine') {
+    if (!gameState.soundEnabled || !gameState.audioContext) return;
+    
+    const oscillator = gameState.audioContext.createOscillator();
+    const gainNode = gameState.audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(gameState.audioContext.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    
+    gainNode.gain.setValueAtTime(0.1, gameState.audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, gameState.audioContext.currentTime + duration);
+    
+    oscillator.start(gameState.audioContext.currentTime);
+    oscillator.stop(gameState.audioContext.currentTime + duration);
+}
+
+// Play sound effects
+function playSound(type) {
+    if (!gameState.soundEnabled) return;
+    
+    switch(type) {
+        case 'launch':
+            createSound(200, 0.2, 'square');
+            break;
+        case 'win':
+            createSound(523, 0.1); // C5
+            setTimeout(() => createSound(659, 0.1), 100); // E5
+            setTimeout(() => createSound(784, 0.3), 200); // G5
+            break;
+        case 'crash':
+            createSound(150, 0.5, 'sawtooth');
+            break;
+        case 'whoosh':
+            if (Math.random() < 0.1) createSound(100 + Math.random() * 50, 0.1, 'triangle');
+            break;
+    }
+}
+
+// Ball class
+class Ball {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.mass = 1;
+        this.radius = 5;
+        this.trail = [];
+        this.launched = false;
+        this.shouldRemove = false;
+        this.shotNumber = 0;
+        this.hitTarget = false;
+    }
+    
+    update(dt) {
+        if (!this.launched) return;
+        
+        // Apply simulation speed multiplier
+        dt *= gameState.simSpeed;
+        
+        // Current velocity and relativistic calculations
+        const v = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        const beta = v / c;
+        const gamma = 1 / Math.sqrt(Math.max(1 - beta * beta, 0.01));
+        
+        // Proper time dilation - ball experiences slower time at high speeds
+        const properDt = dt / gamma;
+        
+        // Calculate spacetime curvature effects from all planets
+        let fx = 0, fy = 0;
+        let totalTimeDistortion = 0;
+        
+        for (let planet of gameState.planets) {
+            const dx = planet.x - this.x;
+            const dy = planet.y - this.y;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            
+            if (r < planet.radius + this.radius) {
+                this.handleCollision(planet);
+                continue;
+            }
+            
+            const minR = Math.max(r, 5);
+            
+            // Schwarzschild radius for this mass
+            const rs = 2 * G * planet.mass / (c * c);
+            
+            // Relativistic gravitational acceleration (geodesic equation)
+            const classicalForce = G * planet.mass / (minR * minR);
+            
+            // Relativistic corrections:
+            // 1. Velocity-dependent terms (frame dragging)
+            const velocityCorrection = 1 + 3 * (this.vx * dx + this.vy * dy) / (c * minR);
+            
+            // 2. Post-Newtonian corrections (1PN)
+            const pnCorrection = 1 + rs / minR + v * v / (c * c);
+            
+            // 3. Strong field effects near event horizon
+            const strongFieldFactor = 1 / Math.sqrt(Math.max(1 - rs / minR, 0.01));
+            
+            const relativisticForce = classicalForce * velocityCorrection * pnCorrection * strongFieldFactor;
+            
+            const angle = Math.atan2(dy, dx);
+            fx += relativisticForce * Math.cos(angle);
+            fy += relativisticForce * Math.sin(angle);
+            
+            // Gravitational time dilation effect
+            const gravitationalTimeDilation = Math.sqrt(Math.max(1 - rs / minR, 0.01));
+            totalTimeDistortion += (1 - gravitationalTimeDilation) * planet.mass / 10000;
+        }
+        
+        // Relativistic momentum update: dp/dt = F where p = γmv
+        // Acceleration becomes harder at high speeds due to relativistic mass
+        this.vx += fx * dt / (gamma * this.mass);
+        this.vy += fy * dt / (gamma * this.mass);
+        
+        // Enforce speed limit with proper relativistic behavior
+        const newV = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (newV > c * 0.99) {
+            const factor = (c * 0.99) / newV;
+            this.vx *= factor;
+            this.vy *= factor;
+        }
+        
+        // Position update from our reference frame (coordinate time)
+        // The ball covers distance vx*dt regardless of its internal time dilation
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        
+        // Sound effects for relativistic motion (affected by proper time)
+        if (this.launched && newV > c * 0.3) {
+            const soundFrequency = 0.02 * properDt / dt; // Sounds get rarer due to time dilation
+            if (Math.random() < soundFrequency / gameState.simSpeed) {
+                playSound('whoosh');
+            }
+        }
+        
+        // Add to trail
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 50) {
+            this.trail.shift();
+        }
+        
+        // Check if ball is out of bounds - auto reset immediately
+        if (this.x < -20 || this.x > canvas.width + 20 || 
+            this.y < -20 || this.y > canvas.height + 20) {
+            if (!gameState.gameLost && !gameState.gameWon) {
+                gameState.gameLost = true;
+                this.launched = false;
+                playSound('crash');
+                gameStatus.textContent = "Ball exited the field! Resetting...";
+                // Auto-reset after a short delay
+                setTimeout(() => {
+                    resetGame();
+                }, Math.max(500, gameState.autoResetDelay / gameState.simSpeed));
+            }
+        }
+        
+        // Check if ball hits target
+        if (gameState.target && !gameState.gameWon) {
+            const dx = gameState.target.x - this.x;
+            const dy = gameState.target.y - this.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < gameState.target.radius + this.radius) {
+                gameState.gameWon = true;
+                this.launched = false; // Stop the ball
+                this.vx = 0;
+                this.vy = 0;
+                playSound('win');
+                gameStatus.textContent = "🎉 Target hit! You won! 🎉 Click 'New Level' for another challenge!";
+            }
+        }
+    }
+    
+    handleCollision(planet) {
+        gameState.gameLost = true;
+        playSound('crash');
+        gameStatus.textContent = "Ball crashed into a planet! Click Reset to try again.";
+    }
+    
+    draw() {
+        // Draw trail
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 1; i < this.trail.length; i++) {
+            const alpha = i / this.trail.length;
+            ctx.globalAlpha = alpha * 0.5;
+            ctx.moveTo(this.trail[i-1].x, this.trail[i-1].y);
+            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        
+        // Draw ball
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw glow effect
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 3);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Planet class
+class Planet {
+    constructor(x, y, mass, color = '#ff6b6b') {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.mass = mass;
+        this.radius = Math.sqrt(mass) * 0.1 + 10;
+        this.color = color;
+        this.initialX = x;
+        this.initialY = y;
+    }
+    
+    update(dt) {
+        if (!gameState.planetsMoving) return;
+        
+        // Apply simulation speed multiplier
+        dt *= gameState.simSpeed;
+        
+        // Calculate gravitational forces from other planets
+        let fx = 0, fy = 0;
+        
+        for (let other of gameState.planets) {
+            if (other === this) continue;
+            
+            const dx = other.x - this.x;
+            const dy = other.y - this.y;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            
+            if (r < this.radius + other.radius) {
+                // Handle planet collision - elastic collision
+                const angle = Math.atan2(dy, dx);
+                const sin = Math.sin(angle);
+                const cos = Math.cos(angle);
+                
+                // Rotate velocities
+                const v1x = this.vx * cos + this.vy * sin;
+                const v1y = this.vy * cos - this.vx * sin;
+                const v2x = other.vx * cos + other.vy * sin;
+                const v2y = other.vy * cos - other.vx * sin;
+                
+                // Elastic collision in 1D
+                const newV1x = ((this.mass - other.mass) * v1x + 2 * other.mass * v2x) / (this.mass + other.mass);
+                const newV2x = ((other.mass - this.mass) * v2x + 2 * this.mass * v1x) / (this.mass + other.mass);
+                
+                // Rotate back
+                this.vx = newV1x * cos - v1y * sin;
+                this.vy = v1y * cos + newV1x * sin;
+                other.vx = newV2x * cos - v2y * sin;
+                other.vy = v2y * cos + newV2x * sin;
+                
+                continue;
+            }
+            
+            // Gravitational force between planets
+            const minR = Math.max(r, 20);
+            const force = G * this.mass * other.mass / (minR * minR);
+            
+            const angle = Math.atan2(dy, dx);
+            fx += force * Math.cos(angle) / this.mass;
+            fy += force * Math.sin(angle) / this.mass;
+        }
+        
+        // Add a weak central force to prevent planets from drifting away
+        // Scale central force with canvas size
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const dcx = centerX - this.x;
+        const dcy = centerY - this.y;
+        const centerR = Math.sqrt(dcx * dcx + dcy * dcy);
+        const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
+        
+        if (centerR > 50 * canvasScale) {
+            const centralForce = 0.1 * centerR * canvasScale;
+            const centerAngle = Math.atan2(dcy, dcx);
+            fx += centralForce * Math.cos(centerAngle);
+            fy += centralForce * Math.sin(centerAngle);
+        }
+        
+        // Update velocity
+        this.vx += fx * dt;
+        this.vy += fy * dt;
+        
+        // Apply damping to prevent runaway motion
+        this.vx *= 0.998;
+        this.vy *= 0.998;
+        
+        // Update position
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        
+        // Keep planets roughly in bounds
+        if (this.x < this.radius) {
+            this.x = this.radius;
+            this.vx = Math.abs(this.vx) * 0.8;
+        }
+        if (this.x > canvas.width - this.radius) {
+            this.x = canvas.width - this.radius;
+            this.vx = -Math.abs(this.vx) * 0.8;
+        }
+        if (this.y < this.radius) {
+            this.y = this.radius;
+            this.vy = Math.abs(this.vy) * 0.8;
+        }
+        if (this.y > canvas.height - this.radius) {
+            this.y = canvas.height - this.radius;
+            this.vy = -Math.abs(this.vy) * 0.8;
+        }
+    }
+    
+    draw() {
+        // Draw planet
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw spacetime curvature visualization
+        if (gameState.showPhysicsInfo) {
+            const rs = 2 * G * this.mass / (c * c); // Schwarzschild radius
+            
+            // Event horizon (if applicable)
+            if (rs > 5) {
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, rs, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Spacetime curvature rings
+            const curvatureRadii = [rs * 2, rs * 4, rs * 8];
+            const curvatureAlphas = [0.4, 0.2, 0.1];
+            
+            for (let i = 0; i < curvatureRadii.length; i++) {
+                if (curvatureRadii[i] > 0) {
+                    ctx.strokeStyle = `rgba(255, 255, 0, ${curvatureAlphas[i]})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, curvatureRadii[i], 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+            
+            // Planet info with relativistic data
+            ctx.fillStyle = '#ffff00';
+            ctx.font = '12px Courier New';
+            ctx.fillText(`M:${Math.round(this.mass)}`, this.x - 30, this.y - this.radius - 25);
+            ctx.fillText(`Rs:${rs.toFixed(1)}`, this.x - 30, this.y - this.radius - 10);
+            
+            if (gameState.planetsMoving) {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const beta = speed / c;
+                ctx.fillText(`β:${beta.toFixed(2)}`, this.x - 30, this.y - this.radius - 40);
+                
+                // Draw relativistic velocity vector
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x + this.vx * 3, this.y + this.vy * 3);
+                ctx.stroke();
+            }
+        }
+        
+        // Draw glow
+        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
+        gradient.addColorStop(0, this.color + '80');
+        gradient.addColorStop(1, this.color + '00');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius * 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Target class
+class Target {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 15;
+        this.pulsePhase = 0;
+    }
+    
+    update(dt) {
+        this.pulsePhase += dt * 5 * gameState.simSpeed;
+    }
+    
+    draw() {
+        const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+        
+        // Draw target with pulsing effect
+        ctx.fillStyle = `rgba(0, 255, 0, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw target rings
+        ctx.strokeStyle = `rgba(0, 255, 0, ${pulse * 0.8})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+// Initialize game
+function initGame() {
+    const ballX = canvas.width * 0.08;
+    gameState.startPos = { x: ballX, y: canvas.height / 2 };
+    if (!gameState.balls) gameState.balls = [];
+    
+    // Scale everything properly based on canvas size
+    const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
+    const xScale = canvas.width / 800;
+    const yScale = canvas.height / 600;
+    
+    gameState.planets = [
+        new Planet(200 * xScale, 200 * yScale, 2000 * canvasScale, '#ff6b6b'),
+        new Planet(400 * xScale, 400 * yScale, 3000 * canvasScale, '#4ecdc4'),
+        new Planet(600 * xScale, 150 * yScale, 2500 * canvasScale, '#ffe66d'),
+        new Planet(300 * xScale, 500 * yScale, 1500 * canvasScale, '#ff8b94')
+    ];
+    
+    // Give planets initial orbital velocities if moving
+    if (gameState.planetsMoving) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        for (let planet of gameState.planets) {
+            const dx = planet.x - centerX;
+            const dy = planet.y - centerY;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            
+            if (r > 50) {
+                // Scale orbital speed with canvas size for stable orbits
+                const baseOrbitalSpeed = Math.sqrt(200 * canvasScale / r);
+                const orbitalSpeed = baseOrbitalSpeed * (0.5 + Math.random() * 0.5);
+                planet.vx = -orbitalSpeed * dy / r;
+                planet.vy = orbitalSpeed * dx / r;
+            }
+        }
+    }
+    
+    gameState.target = new Target(canvas.width * 0.92, canvas.height * 0.5);
+    gameState.gameWon = false;
+    gameState.shotCount = 0;
+    gameStatus.textContent = "Click anywhere to launch balls! Rapid fire enabled.";
+}
+
+// Generate a new random level
+function generateNewLevel() {
+    // More planets for larger canvases
+    const baseNumPlanets = 3;
+    const bonusPlanets = Math.floor((canvas.width * canvas.height) / (800 * 600) * 2);
+    const numPlanets = baseNumPlanets + bonusPlanets + Math.floor(Math.random() * 3);
+    
+    const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#ff8b94', '#a8e6cf', '#ffd93d', '#6c5ce7', '#fd79a8'];
+    
+    gameState.planets = [];
+    
+    // Scale spacing and buffers based on actual canvas size
+    const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
+    const minSpacing = 80 * canvasScale;
+    const startBuffer = 120 * canvasScale;
+    const edgeBuffer = 80 * canvasScale;
+    
+    // Generate planets with proper spacing for the canvas size
+    for (let i = 0; i < numPlanets; i++) {
+        let x, y, validPosition = false;
+        let attempts = 0;
+        
+        while (!validPosition && attempts < 100) {
+            x = startBuffer + Math.random() * (canvas.width - startBuffer - edgeBuffer);
+            y = edgeBuffer + Math.random() * (canvas.height - 2 * edgeBuffer);
+            
+            // Check distance from start position
+            const startX = canvas.width * 0.08;
+            const startY = canvas.height / 2;
+            const distFromStart = Math.sqrt((x - startX) * (x - startX) + (y - startY) * (y - startY));
+            
+            validPosition = distFromStart > startBuffer;
+            
+            // Check distance from other planets
+            for (let planet of gameState.planets) {
+                const dist = Math.sqrt((x - planet.x) * (x - planet.x) + (y - planet.y) * (y - planet.y));
+                if (dist < minSpacing) {
+                    validPosition = false;
+                    break;
+                }
+            }
+            attempts++;
+        }
+        
+        // Scale mass with canvas size for appropriate gravity
+        const baseMass = 1000 + Math.random() * 4000;
+        const mass = baseMass * canvasScale;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        gameState.planets.push(new Planet(x, y, mass, color));
+    }
+    
+    // Place target with proper scaling
+    let targetX, targetY;
+    const targetBuffer = canvas.width * 0.08;
+    let attempts = 0;
+    do {
+        targetX = canvas.width - targetBuffer - Math.random() * targetBuffer;
+        targetY = edgeBuffer + Math.random() * (canvas.height - 2 * edgeBuffer);
+        attempts++;
+    } while (attempts < 50 && gameState.planets.some(p => {
+        const dist = Math.sqrt((targetX - p.x) * (targetX - p.x) + (targetY - p.y) * (targetY - p.y));
+        return dist < p.radius + 40 * canvasScale;
+    }));
+    
+    gameState.target = new Target(targetX, targetY);
+    const ballX = canvas.width * 0.08;
+    gameState.startPos = { x: ballX, y: canvas.height / 2 };
+    gameState.balls = [];
+    gameState.gameWon = false;
+    gameState.shotCount = 0;
+    gameStatus.textContent = `New level with ${numPlanets} planets! Fire away!`;
+}
+
+// Game loop
+let lastTime = 0;
+function gameLoop(currentTime) {
+    const dt = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
+    
+    // Clear canvas
+    ctx.fillStyle = '#000011';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw stars
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < 100; i++) {
+        const x = (i * 37) % canvas.width;
+        const y = (i * 73) % canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.random() * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Show simulation speed and physics info in corner
+    ctx.fillStyle = '#00ff00';
+    ctx.font = '16px Courier New';
+    ctx.fillText(`${gameState.simSpeed}x Speed`, canvas.width - 120, 25);
+    
+    // Show temporal reference frame
+    if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
+        const refBall = gameState.balls[gameState.balls.length - 1];
+        const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
+        const refBeta = refSpeed / c;
+        const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
+        
+        ctx.fillStyle = '#ffaa00';
+        ctx.font = '14px Courier New';
+        ctx.fillText(`Ball #${refBall.shotNumber} Frame`, canvas.width - 150, 50);
+        ctx.fillText(`Time Factor: ${(1/refGamma).toFixed(3)}x`, canvas.width - 150, 70);
+    } else {
+        ctx.fillStyle = '#ffaa00';
+        ctx.font = '14px Courier New';
+        ctx.fillText('Lab Frame', canvas.width - 120, 50);
+    }
+    
+    if (gameState.showPhysicsInfo) {
+        ctx.fillStyle = '#ffff00';
+        ctx.font = '14px Courier New';
+        ctx.fillText('RELATIVISTIC PHYSICS:', 10, canvas.height - 180);
+        ctx.fillText(`Active Balls: ${gameState.balls ? gameState.balls.length : 0}`, 10, canvas.height - 160);
+        ctx.fillText(`Total Shots: ${gameState.shotCount}`, 10, canvas.height - 140);
+        
+        // Show temporal frame info
+        if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
+            const refBall = gameState.balls[gameState.balls.length - 1];
+            const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
+            const refBeta = refSpeed / c;
+            const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
+            
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillText(`TEMPORAL FRAME: Ball #${refBall.shotNumber}`, 10, canvas.height - 120);
+            ctx.fillText(`Reference Speed: ${Math.round(refSpeed)} (${(refBeta * 100).toFixed(1)}% c)`, 10, canvas.height - 100);
+            ctx.fillText(`Time Dilation Factor: ${refGamma.toFixed(3)}`, 10, canvas.height - 80);
+            ctx.fillText(`Others appear ${(1/refGamma).toFixed(3)}x slower`, 10, canvas.height - 60);
+        } else {
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillText('TEMPORAL FRAME: Laboratory (normal time)', 10, canvas.height - 120);
+        }
+        
+        // Show physics for fastest ball (if not in ball frame) or all balls summary
+        if (gameState.balls && gameState.balls.length > 0) {
+            if (gameState.temporalFrame === 'lab') {
+                const fastestBall = gameState.balls.reduce((fastest, ball) => {
+                    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+                    const fastestSpeed = Math.sqrt(fastest.vx * fastest.vx + fastest.vy * fastest.vy);
+                    return speed > fastestSpeed ? ball : fastest;
+                });
+                
+                const speed = Math.sqrt(fastestBall.vx * fastestBall.vx + fastestBall.vy * fastestBall.vy);
+                const beta = speed / c;
+                const gamma = 1 / Math.sqrt(Math.max(1 - beta * beta, 0.01));
+                
+                ctx.fillStyle = '#ffff00';
+                ctx.fillText(`Fastest Ball #${fastestBall.shotNumber}:`, 10, canvas.height - 40);
+                ctx.fillText(`Speed: ${Math.round(speed)} (${(beta * 100).toFixed(1)}% c)`, 10, canvas.height - 20);
+            }
+        }
+    }
+    
+    // Calculate temporal reference frame effects
+    let temporalDt = dt;
+    let referenceBall = null;
+    
+    if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
+        // Use newest ball (last in array) as temporal reference
+        referenceBall = gameState.balls[gameState.balls.length - 1];
+        const refSpeed = Math.sqrt(referenceBall.vx * referenceBall.vx + referenceBall.vy * referenceBall.vy);
+        const refBeta = refSpeed / c;
+        const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
+        
+        // From reference ball's perspective, everything else happens slower
+        temporalDt = dt / refGamma;
+    }
+    
+    // Update and draw game objects with temporal scaling
+    if (gameState.target) {
+        gameState.target.update(temporalDt);
+        gameState.target.draw();
+    }
+    
+    for (let planet of gameState.planets) {
+        planet.update(temporalDt);
+        planet.draw();
+    }
+    
+    // Update and draw all balls, remove out-of-bounds ones
+    for (let i = gameState.balls.length - 1; i >= 0; i--) {
+        const ball = gameState.balls[i];
+        
+        // Reference ball uses normal time, others use temporal time
+        const ballDt = (referenceBall === ball) ? dt : temporalDt;
+        
+        ball.update(ballDt);
+        
+        // Visual indication of reference ball
+        if (referenceBall === ball && gameState.temporalFrame === 'ball') {
+            // Draw special border around reference ball
+            ctx.strokeStyle = '#ffaa00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius + 8, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        ball.draw();
+        
+        if (ball.shouldRemove) {
+            gameState.balls.splice(i, 1);
+        }
+    }
+    
+    // Always draw starting position
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(gameState.startPos.x, gameState.startPos.y, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fill();
+    
+    // Draw launch preview
+    if (gameState.isAiming) {
+        const dx = gameState.aimTarget.x - gameState.startPos.x;
+        const dy = gameState.aimTarget.y - gameState.startPos.y;
+        
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(gameState.startPos.x, gameState.startPos.y);
+        ctx.lineTo(gameState.aimTarget.x, gameState.aimTarget.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw crosshair at aim point
+        ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(gameState.aimTarget.x - 10, gameState.aimTarget.y);
+        ctx.lineTo(gameState.aimTarget.x + 10, gameState.aimTarget.y);
+        ctx.moveTo(gameState.aimTarget.x, gameState.aimTarget.y - 10);
+        ctx.lineTo(gameState.aimTarget.x, gameState.aimTarget.y + 10);
+        ctx.stroke();
+        
+        // Draw power indicator
+        const power = Math.min(Math.sqrt(dx*dx + dy*dy), 150);
+        ctx.fillStyle = `hsl(${120 - power * 0.8}, 100%, 50%)`;
+        ctx.fillRect(10, 10, power * 1.5, 20);
+        ctx.strokeStyle = '#fff';
+        ctx.strokeRect(10, 10, 225, 20);
+        
+        // Show current simulation speed
+        ctx.fillStyle = '#00ff00';
+        ctx.font = '14px Courier New';
+        ctx.fillText(`Speed: ${gameState.simSpeed}x`, 10, 50);
+        
+        // Show power value
+        ctx.fillText(`Power: ${Math.round(power)}`, 10, 70);
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// Mouse event handlers
+canvas.addEventListener('mousemove', (e) => {
+    if (gameState.gameWon) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Always show aim line when hovering
+    gameState.isAiming = true;
+    gameState.aimTarget = { x, y };
+});
+
+canvas.addEventListener('mouseleave', (e) => {
+    // Stop aiming when mouse leaves canvas
+    gameState.isAiming = false;
+});
+
+canvas.addEventListener('click', (e) => {
+    if (gameState.gameWon) return;
+    if (!gameState.balls || gameState.balls.length >= gameState.maxBalls) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Calculate launch vector from start position to click point
+    const dx = x - gameState.startPos.x;
+    const dy = y - gameState.startPos.y;
+    
+    // Scale the launch velocity based on distance
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const maxDistance = 200;
+    const velocityScale = Math.min(distance / maxDistance, 1) * 3 + 0.5;
+    
+    // Create and launch new ball
+    const newBall = new Ball(gameState.startPos.x, gameState.startPos.y);
+    newBall.vx = (dx / distance) * distance * velocityScale;
+    newBall.vy = (dy / distance) * distance * velocityScale;
+    newBall.launched = true;
+    newBall.shotNumber = ++gameState.shotCount;
+    
+    gameState.balls.push(newBall);
+    
+    playSound('launch');
+    gameStatus.textContent = `Shot #${gameState.shotCount} fired! ${gameState.balls.length} balls active.`;
+});
+
+// Control functions
+function resetGame() {
+    // Reset current level
+    const ballX = Math.min(50, canvas.width * 0.1);
+    gameState.ball = new Ball(ballX, canvas.height / 2);
+    gameState.gameWon = false;
+    gameState.gameLost = false;
+    gameStatus.textContent = "Click anywhere to aim and launch the ball!";
+}
+
+// Change canvas size
+function changeCanvasSize() {
+    const select = document.getElementById('canvasSize');
+    const size = select.value;
+    
+    let width, height;
+    switch(size) {
+        case 'small':
+            width = 600; height = 450;
+            break;
+        case 'medium':
+            width = 800; height = 600;
+            break;
+        case 'large':
+            width = 1000; height = 750;
+            break;
+        case 'xlarge':
+            width = 1200; height = 900;
+            break;
+        default:
+            width = 800; height = 600;
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Reinitialize game with new dimensions - this creates a truly larger play area
+    initGame();
+    const area = Math.round((width * height) / 1000);
+    gameStatus.textContent = `Play area expanded to ${width}x${height} (${area}k units²)! More room for orbits!`;
+}
+
+// Change simulation speed
+function changeSimSpeed() {
+    const select = document.getElementById('simSpeed');
+    gameState.simSpeed = parseFloat(select.value);
+    
+    const speedText = {
+        1: '1x (Normal)',
+        2: '2x (Fast)', 
+        3: '3x (Faster)',
+        4: '4x (Very Fast)',
+        5: '5x (Extreme)'
+    };
+    
+    gameStatus.textContent = `Simulation speed set to ${speedText[gameState.simSpeed]}! ${gameState.balls && gameState.balls.length > 0 ? 'Watch the action!' : 'Click anywhere to launch balls!'}`;
+}
+
+// Toggle planet motion
+function togglePlanetMotion() {
+    gameState.planetsMoving = !gameState.planetsMoving;
+    const button = document.querySelector('button[onclick="togglePlanetMotion()"]');
+    button.textContent = gameState.planetsMoving ? 'Planets: (M)oving' : 'Planets: (S)tatic';
+    
+    if (gameState.planetsMoving) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
+        
+        for (let planet of gameState.planets) {
+            const dx = planet.x - centerX;
+            const dy = planet.y - centerY;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            
+            if (r > 50 * canvasScale) {
+                const baseOrbitalSpeed = Math.sqrt(200 * canvasScale / r);
+                const orbitalSpeed = baseOrbitalSpeed * (0.5 + Math.random() * 0.5);
+                planet.vx = -orbitalSpeed * dy / r;
+                planet.vy = orbitalSpeed * dx / r;
+            }
+        }
+        gameStatus.textContent = "Relativistic N-body simulation active!";
+    } else {
+        for (let planet of gameState.planets) {
+            planet.vx = 0;
+            planet.vy = 0;
+        }
+        gameStatus.textContent = "Planets locked in static configuration.";
+    }
+}
+
+// Toggle temporal reference frame
+function toggleTemporalFrame() {
+    gameState.temporalFrame = gameState.temporalFrame === 'lab' ? 'ball' : 'lab';
+    const button = document.querySelector('button[onclick="toggleTemporalFrame()"]');
+    
+    if (gameState.temporalFrame === 'ball') {
+        button.textContent = '(T)ime: Ball Frame';
+        if (gameState.balls && gameState.balls.length > 0) {
+            const refBall = gameState.balls[gameState.balls.length - 1];
+            gameStatus.textContent = `Temporal frame: Ball #${refBall.shotNumber} perspective! Time flows differently.`;
+        } else {
+            gameStatus.textContent = "Ball temporal frame selected - launch a ball to see effects!";
+        }
+    } else {
+        button.textContent = '(T)ime: Lab Frame';
+        gameStatus.textContent = "Temporal frame: Laboratory perspective (normal time flow).";
+    }
+}
+
+function togglePhysicsInfo() {
+    gameState.showPhysicsInfo = !gameState.showPhysicsInfo;
+    const button = document.querySelector('button[onclick="togglePhysicsInfo()"]');
+    button.textContent = gameState.showPhysicsInfo ? '(P)hysics: ON' : '(P)hysics: OFF';
+    
+    if (gameState.showPhysicsInfo) {
+        gameStatus.textContent = "Relativistic physics overlay enabled! See spacetime curvature, time dilation, and relativistic effects.";
+    } else {
+        gameStatus.textContent = "Physics overlay disabled.";
+    }
+}
+
+function toggleSound() {
+    gameState.soundEnabled = !gameState.soundEnabled;
+    const button = document.querySelector('button[onclick="toggleSound()"]');
+    button.textContent = gameState.soundEnabled ? '(S)ound: ON' : '(S)ound: OFF';
+    
+    if (!gameState.audioContext && gameState.soundEnabled) {
+        initAudio();
+    }
+}
+
+// Start the game
+initAudio();
+initGame();
+changeCanvasSize(); // Set initial canvas size after init
+requestAnimationFrame(gameLoop);
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    switch(e.key.toLowerCase()) {
+        case 'r':
+            resetGame();
+            break;
+        case 'n':
+            generateNewLevel();
+            break;
+        case 'p':
+            togglePhysicsInfo();
+            break;
+        case 's':
+            toggleSound();
+            break;
+        case 'm':
+            togglePlanetMotion();
+            break;
+        case 't':
+            toggleTemporalFrame();
+            break;
+    }
+});
+
+// Enable audio on first user interaction
+document.addEventListener('click', function enableAudio() {
+    if (gameState.audioContext && gameState.audioContext.state === 'suspended') {
+        gameState.audioContext.resume();
+    }
+    document.removeEventListener('click', enableAudio);
+}, { once: true });
+    </script>
+</body>
+</html>
