@@ -4,7 +4,7 @@ all:
 	cat Makefile
 
 install:
-	bundle install
+	./install.sh
 
 dev:
 	# NOTE: for some reason only http://0.0.0.0:4000 works
