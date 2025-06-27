@@ -7,7 +7,8 @@ install:
 	bundle install
 
 dev:
-	bundle exec jekyll serve --baseurl="" --watch --livereload --host=0.0.0.0 --drafts
+	# NOTE: for some reason only http://0.0.0.0:4000 works
+	bundle exec jekyll serve --baseurl="" --watch --livereload --drafts --host=0.0.0.0
 
 serve:
 	bundle exec jekyll serve --baseurl="" --watch --livereload --host=0.0.0.0
