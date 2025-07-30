@@ -1,10 +1,10 @@
 ---
 layout: post
 mermaid: true
-title: "Agentic [Whatever](https://news.ycombinator.com/item?id=44461208) to One-Shot"
+title: "One-Shot Whatever"
 ---
 
-[whatever](https://news.ycombinator.com/item?id=44461208)
+[Whatever](https://news.ycombinator.com/item?id=44461208).
 
 Consider some task for which the following chain ends up the *success* state.
 What does the last `INITIAL.md` look like?
