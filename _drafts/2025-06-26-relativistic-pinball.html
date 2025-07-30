@@ -95,7 +95,7 @@ Nothing has been checked.
     <div id="controls">
         <button onclick="resetGame()">(R)eset Game</button>
         <button onclick="generateNewLevel()">(N)ew Level</button>
-        <button onclick="togglePhysicsInfo()">(P)hysics: OFF</button>
+        <button onclick="togglePhysicsInfo()">(P)hysics: ON</button>
         <button onclick="toggleSound()">(S)ound: ON</button>
         <button onclick="togglePlanetMotion()">Planets: (M)oving</button>
         <button onclick="toggleTemporalFrame()">(T)ime: Lab Frame</button>
@@ -142,7 +142,7 @@ let gameState = {
     startPos: { x: 0, y: 0 }, // Starting position always visible
     isAiming: false,
     aimTarget: { x: 0, y: 0 },
-    showPhysicsInfo: false,
+    showPhysicsInfo: true,
     gameWon: false,
     soundEnabled: true,
     audioContext: null,
