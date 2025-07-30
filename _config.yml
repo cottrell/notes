@@ -1,6 +1,6 @@
 title: Notes
-description: Testing things.
-author: Cottrell
+description: Playground
+author: David Cottrell
 baseurl: "/notes"
 url: "https://cottrell.github.io"
 
@@ -22,3 +22,7 @@ mermaid:
 
 kramdown:
   math_engine: mathjax
+
+
+github_username: cottrell
+# linkedin_username: dcottrell
