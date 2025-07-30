@@ -2,6 +2,10 @@
 layout: post
 mermaid: true
 title: "One-Shot Whatever"
+description: "Exploring the iterative workflow between humans and AI agents, from initial project setup to success, and what the final INITIAL.md specification might look like."
+excerpt: "A conceptual framework for understanding the human-agent collaboration cycle in project development and task completion."
+tags: [AI, automation, workflow, project-management, human-computer-interaction]
+categories: [AI, Workflow]
 ---
 
 [Whatever](https://news.ycombinator.com/item?id=44461208).
