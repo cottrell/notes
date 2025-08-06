@@ -17,7 +17,7 @@ date: 2025-08-06
 <div style="background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px; padding: 20px; margin: 20px 0;">
     <h3 style="margin-top: 0; color: #0ea5e9;">TL;DR</h3>
     <p style="margin-bottom: 0; font-size: 16px; line-height: 1.5;">
-        If you can <strong>choose how much you work</strong> and receive gross income at a linear rate, 
+        If you can <strong>choose how much you work</strong> and receive gross income at a linear rate,
         <strong>your marginal return per working day decreases substantially</strong> as you work more due to progressive taxation and pension contribution limits.
         The UK tax system creates significant "efficiency cliffs" where working additional days becomes much less rewarding.
     </p>
@@ -148,7 +148,7 @@ date: 2025-08-06
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             label {
                 min-width: unset;
             }
@@ -157,9 +157,9 @@ date: 2025-08-06
 </head>
 <body>
     <h1>Marginal Net Outcome</h1>
-    
+
     <p>Channeling <a href="https://taxpolicy.org.uk/about/" target="_blank" style="color: #3498db;">Dan Niedle at Tax Policy Associates</a>, let's understand the tax efficiency of working different intensities.</p>
-    
+
     <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
             Net Income + SIPP Contribution = <span style="color: #3498db;">Net Outcome (NO)</span>
@@ -168,7 +168,7 @@ date: 2025-08-06
             (treating pension as income since it's money you keep)
         </div>
     </div>
-    
+
     <div style="background: #e8f5e8; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
             Change in NO per Additional Working Day = <span style="color: #27ae60;">Marginal Net Outcome (MNO)</span>
@@ -177,22 +177,22 @@ date: 2025-08-06
             (how much extra you get for each extra day worked)
         </div>
     </div>
-    
+
     <p>Calculate your marginal net outcome rate per working day at different work intensities. This shows how much additional net outcome you get per extra day worked due to progressive taxation and pension limits.</p>
 
     <div class="calculator-container">
         <h2>Calculator Settings</h2>
-        
+
         <div class="input-group">
             <label for="grossIncome">Full-Time Gross Annual Salary (£):</label>
             <input type="number" id="grossIncome" value="50000" min="0" max="500000" step="1000">
         </div>
-        
+
         <div class="input-group">
             <label for="carryoverSipp">Carry-Over SIPP Allowance (£):</label>
             <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
         </div>
-        
+
         <button onclick="updateChart()">Calculate Marginal NO Rates</button>
     </div>
 
@@ -256,8 +256,8 @@ date: 2025-08-06
             if (grossIncome <= taxData2025.incomeTax.personalAllowanceReductionStart) {
                 return taxData2025.incomeTax.personalAllowance;
             }
-            
-            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) * 
+
+            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) *
                              taxData2025.incomeTax.personalAllowanceReductionRate;
             return Math.max(0, taxData2025.incomeTax.personalAllowance - reduction);
         }
@@ -266,7 +266,7 @@ date: 2025-08-06
             const taxableIncome = Math.max(0, grossIncome - pensionContribution);
             const personalAllowance = calculatePersonalAllowance(taxableIncome);
             const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
-            
+
             let tax = 0;
             for (const band of taxData2025.incomeTax.bands) {
                 if (taxableAmount > band.min) {
@@ -274,40 +274,40 @@ date: 2025-08-06
                     tax += taxableInBand * band.rate;
                 }
             }
-            
+
             return tax;
         }
 
         function calculateNationalInsurance(grossIncome, pensionContribution = 0) {
             const niableIncome = Math.max(0, grossIncome - pensionContribution);
             let ni = 0;
-            
+
             for (const band of taxData2025.nationalInsurance.rates) {
                 if (niableIncome > band.min) {
                     const niableInBand = Math.min(niableIncome, band.max) - band.min;
                     ni += niableInBand * band.rate;
                 }
             }
-            
+
             return ni;
         }
 
         function calculateMaxPensionContribution(grossIncome, carryoverAllowance = 0) {
             let allowance = taxData2025.pension.annualAllowance + carryoverAllowance;
-            
+
             if (grossIncome > taxData2025.pension.taperedAllowanceStart) {
-                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) * 
+                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) *
                                  taxData2025.pension.taperedRate;
                 allowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, allowance - reduction);
             }
-            
+
             return Math.min(allowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
         }
 
         function calculateTotalTax(grossIncome, pensionContribution = 0) {
             const incomeTax = calculateIncomeTax(grossIncome, pensionContribution);
             const nationalInsurance = calculateNationalInsurance(grossIncome, pensionContribution);
-            
+
             return {
                 incomeTax,
                 nationalInsurance,
@@ -323,29 +323,29 @@ date: 2025-08-06
         function calculateSharedData(fullTimeIncome, carryoverSipp) {
             const workingDaysPerYear = 365 - 104 - 28;
             const data = [];
-            
+
             // First calculate all the basic data points
             const rawData = [];
             for (let i = 0; i <= 20; i++) {
                 const daysPerWeek = (i / 20) * 5;
                 const percentFullTime = (daysPerWeek / 5) * 100;
                 const currentIncome = fullTimeIncome * (daysPerWeek / 5);
-                
+
                 // No SIPP scenario
                 const noSippCalc = calculateTotalTax(currentIncome, 0);
-                
+
                 // Max SIPP scenario
                 const maxPension = calculateMaxPensionContribution(currentIncome, carryoverSipp);
                 const maxSippCalc = calculateTotalTax(currentIncome, maxPension);
                 const maxNet = maxSippCalc.netIncome + maxPension;
-                
+
                 // Calculate work days and holidays for this intensity (keep fractional)
                 const fullTimeWorkDays = 365 - 104; // 365 days - weekends = 261
                 const fullTimeHolidays = 28;
                 const actualWorkDays = fullTimeWorkDays * (daysPerWeek / 5);
                 const actualHolidays = fullTimeHolidays * (daysPerWeek / 5);
                 const netWorkingDays = actualWorkDays - actualHolidays;
-                
+
                 rawData.push({
                     i: i,
                     percentage: percentFullTime,
@@ -355,7 +355,7 @@ date: 2025-08-06
                     netWorkingDays: netWorkingDays,
                     noSippNet: noSippCalc.netIncome,
                     maxNet: maxNet,
-                    
+
                     // Tax breakdown
                     noSippContrib: 0,
                     noSippTax: noSippCalc.incomeTax,
@@ -365,48 +365,48 @@ date: 2025-08-06
                     maxNI: maxSippCalc.nationalInsurance
                 });
             }
-            
+
             // Now calculate MNO for each step (marginal rate between consecutive steps)
             for (let i = 1; i <= 20; i++) {
                 const current = rawData[i];
                 const previous = rawData[i-1];
-                
+
                 // Calculate Δ NO and additional working days for this step
                 const noSippDeltaNO = current.noSippNet - previous.noSippNet;
                 const maxDeltaNO = current.maxNet - previous.maxNet;
                 const additionalWorkingDays = current.netWorkingDays - previous.netWorkingDays;
-                
+
                 // Calculate MNO = Δ NO ÷ additional working days for this step
                 const mnoNoSipp = additionalWorkingDays > 0 ? noSippDeltaNO / additionalWorkingDays : 0;
                 const mnoMax = additionalWorkingDays > 0 ? maxDeltaNO / additionalWorkingDays : 0;
-                
+
                 data.push({
                     ...current,
                     mnoNoSipp: mnoNoSipp,
                     mnoMax: mnoMax
                 });
             }
-            
+
             return data;
         }
 
         function updateChart() {
             const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
             const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
-            
+
             // Calculate shared data once
             sharedData = calculateSharedData(fullTimeIncome, carryoverSipp);
-            
+
             // Extract chart data from shared data
             const partTimeData = sharedData.map(d => d.percentage);
             const noSippRates = sharedData.map(d => d.mnoNoSipp);
             const maxSippRates = sharedData.map(d => d.mnoMax);
-            
+
             const chartDom = document.getElementById('efficiencyChart');
             if (!efficiencyChart) {
                 efficiencyChart = echarts.init(chartDom);
             }
-            
+
             const series = [
                 {
                     name: 'No SIPP',
@@ -441,7 +441,7 @@ date: 2025-08-06
                     }
                 }
             ];
-            
+
             const option = {
                 title: {
                     text: `£${fullTimeIncome.toLocaleString()} Full-Time Salary`,
@@ -492,12 +492,12 @@ date: 2025-08-06
                     top: '15%'
                 }
             };
-            
+
             efficiencyChart.setOption(option);
-            
+
             // Generate marginal tax rate chart (static background info)
             generateMarginalTaxChart();
-            
+
             // Generate breakdown table
             generateBreakdownTable(fullTimeIncome, carryoverSipp);
         }
@@ -509,24 +509,24 @@ date: 2025-08-06
             const combinedRates = [];
             const sippEffectiveRates = [];
             const sippEffectiveRatesWithCarryover = [];
-            
+
             const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
-            
+
             // Calculate marginal rates from £0 to £500k
             for (let income = 0; income <= 500000; income += 2500) {
                 incomes.push(income);
-                
+
                 // Calculate marginal rates using small increment
                 const increment = 100;
-                
+
                 // Basic rates (no pension)
                 const current = calculateTotalTax(income, 0);
                 const higher = calculateTotalTax(income + increment, 0);
-                
+
                 const marginalIncomeTax = ((higher.incomeTax - current.incomeTax) / increment) * 100;
                 const marginalNI = ((higher.nationalInsurance - current.nationalInsurance) / increment) * 100;
                 const marginalCombined = marginalIncomeTax + marginalNI;
-                
+
                 // SIPP scenario rates (with pension optimization)
                 const currentMaxPension = calculateMaxPensionContribution(income, 0);
                 const higherMaxPension = calculateMaxPensionContribution(income + increment, 0);
@@ -534,10 +534,10 @@ date: 2025-08-06
                 const higherSippCalc = calculateTotalTax(income + increment, higherMaxPension);
                 const currentSippNet = currentSippCalc.netIncome + currentMaxPension;
                 const higherSippNet = higherSippCalc.netIncome + higherMaxPension;
-                
+
                 // Effective marginal rate = 1 - (additional net income / additional gross income)
                 const sippEffectiveRate = (1 - ((higherSippNet - currentSippNet) / increment)) * 100;
-                
+
                 // SIPP scenario with carryover
                 const currentMaxPensionCarryover = calculateMaxPensionContribution(income, carryoverSipp);
                 const higherMaxPensionCarryover = calculateMaxPensionContribution(income + increment, carryoverSipp);
@@ -545,21 +545,21 @@ date: 2025-08-06
                 const higherSippCarryoverCalc = calculateTotalTax(income + increment, higherMaxPensionCarryover);
                 const currentSippCarryoverNet = currentSippCarryoverCalc.netIncome + currentMaxPensionCarryover;
                 const higherSippCarryoverNet = higherSippCarryoverCalc.netIncome + higherMaxPensionCarryover;
-                
+
                 const sippEffectiveRateCarryover = (1 - ((higherSippCarryoverNet - currentSippCarryoverNet) / increment)) * 100;
-                
+
                 incomeTaxRates.push(marginalIncomeTax);
                 niRates.push(marginalNI);
                 combinedRates.push(marginalCombined);
                 sippEffectiveRates.push(sippEffectiveRate);
                 sippEffectiveRatesWithCarryover.push(sippEffectiveRateCarryover);
             }
-            
+
             const chartDom = document.getElementById('marginalTaxChart');
             if (!marginalTaxChart) {
                 marginalTaxChart = echarts.init(chartDom);
             }
-            
+
             const option = {
                 title: {
                     text: 'Marginal Tax Rates up to £500k',
@@ -653,18 +653,18 @@ date: 2025-08-06
                     top: '15%'
                 }
             };
-            
+
             marginalTaxChart.setOption(option);
         }
 
         function generateBreakdownTable(fullTimeIncome, carryoverSipp) {
             const breakdownData = [];
-            
+
             // Show ALL data points from the chart (all 20 points from 5% to 100%)
             for (let i = 0; i < sharedData.length; i++) {
                 const dataPoint = sharedData[i];
                 const prevDataPoint = i > 0 ? sharedData[i-1] : null;
-                
+
                 // Calculate Δ NO from previous step
                 let noSippDeltaNO, maxDeltaNO;
                 if (prevDataPoint) {
@@ -675,14 +675,14 @@ date: 2025-08-06
                     noSippDeltaNO = dataPoint.noSippNet;
                     maxDeltaNO = dataPoint.maxNet;
                 }
-                
+
                 breakdownData.push({
                     percentage: `${Math.round(dataPoint.percentage)}%`,
                     grossIncome: dataPoint.grossIncome,
                     workDays: dataPoint.workDays,
                     holidays: dataPoint.holidays,
                     netWorkingDays: dataPoint.netWorkingDays,
-                    
+
                     // No SIPP scenario
                     noSippContrib: dataPoint.noSippContrib,
                     noSippTax: dataPoint.noSippTax,
@@ -690,7 +690,7 @@ date: 2025-08-06
                     noSippNet: dataPoint.noSippNet,
                     noSippDeltaNO: noSippDeltaNO,
                     noSippMNO: dataPoint.mnoNoSipp,
-                    
+
                     // Max SIPP scenario
                     maxSipp: dataPoint.maxSipp,
                     maxTax: dataPoint.maxTax,
@@ -700,7 +700,7 @@ date: 2025-08-06
                     maxMNO: dataPoint.mnoMax
                 });
             }
-            
+
             let tableHTML = `
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #ddd;">
                     <thead>
@@ -730,7 +730,7 @@ date: 2025-08-06
                     </thead>
                     <tbody>
             `;
-            
+
             breakdownData.forEach(row => {
                 tableHTML += `
                     <tr style="font-size: 9px;">
@@ -754,9 +754,9 @@ date: 2025-08-06
                     </tr>
                 `;
             });
-            
+
             tableHTML += '</tbody></table>';
-            
+
             document.getElementById('tableContent').innerHTML = tableHTML;
             document.getElementById('breakdownTable').style.display = 'block';
         }
