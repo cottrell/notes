@@ -203,6 +203,11 @@ date: 2025-08-06
         <div id="tableContent"></div>
     </div>
 
+    <div class="chart">
+        <h3>UK Marginal Tax Rates 2025-26 (Background Info)</h3>
+        <div id="marginalTaxChart" class="chart-wrapper"></div>
+    </div>
+
     <script>
         const taxData2025 = {
             incomeTax: {
@@ -296,6 +301,7 @@ date: 2025-08-06
         }
 
         let efficiencyChart;
+        let marginalTaxChart;
         let sharedData = []; // Single source of truth for both chart and table
 
         function calculateSharedData(fullTimeIncome, carryoverSipp) {
@@ -317,11 +323,11 @@ date: 2025-08-06
                 const maxSippCalc = calculateTotalTax(currentIncome, maxPension);
                 const maxNet = maxSippCalc.netIncome + maxPension;
                 
-                // Calculate work days and holidays for this intensity (avoid rounding errors)
+                // Calculate work days and holidays for this intensity
                 const fullTimeWorkDays = 365 - 104; // 365 days - weekends = 261
                 const fullTimeHolidays = 28;
-                const actualWorkDays = fullTimeWorkDays * (daysPerWeek / 5);
-                const actualHolidays = fullTimeHolidays * (daysPerWeek / 5);
+                const actualWorkDays = Math.round(fullTimeWorkDays * (daysPerWeek / 5));
+                const actualHolidays = Math.round(fullTimeHolidays * (daysPerWeek / 5));
                 const netWorkingDays = actualWorkDays - actualHolidays;
                 
                 rawData.push({
@@ -470,8 +476,165 @@ date: 2025-08-06
             
             efficiencyChart.setOption(option);
             
+            // Generate marginal tax rate chart (static background info)
+            generateMarginalTaxChart();
+            
             // Generate breakdown table
             generateBreakdownTable(fullTimeIncome, carryoverSipp);
+        }
+
+        function generateMarginalTaxChart() {
+            const incomes = [];
+            const incomeTaxRates = [];
+            const niRates = [];
+            const combinedRates = [];
+            const sippEffectiveRates = [];
+            const sippEffectiveRatesWithCarryover = [];
+            
+            const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
+            
+            // Calculate marginal rates from £0 to £500k
+            for (let income = 0; income <= 500000; income += 2500) {
+                incomes.push(income);
+                
+                // Calculate marginal rates using small increment
+                const increment = 100;
+                
+                // Basic rates (no pension)
+                const current = calculateTotalTax(income, 0);
+                const higher = calculateTotalTax(income + increment, 0);
+                
+                const marginalIncomeTax = ((higher.incomeTax - current.incomeTax) / increment) * 100;
+                const marginalNI = ((higher.nationalInsurance - current.nationalInsurance) / increment) * 100;
+                const marginalCombined = marginalIncomeTax + marginalNI;
+                
+                // SIPP scenario rates (with pension optimization)
+                const currentMaxPension = calculateMaxPensionContribution(income, 0);
+                const higherMaxPension = calculateMaxPensionContribution(income + increment, 0);
+                const currentSippCalc = calculateTotalTax(income, currentMaxPension);
+                const higherSippCalc = calculateTotalTax(income + increment, higherMaxPension);
+                const currentSippNet = currentSippCalc.netIncome + currentMaxPension;
+                const higherSippNet = higherSippCalc.netIncome + higherMaxPension;
+                
+                // Effective marginal rate = 1 - (additional net income / additional gross income)
+                const sippEffectiveRate = (1 - ((higherSippNet - currentSippNet) / increment)) * 100;
+                
+                // SIPP scenario with carryover
+                const currentMaxPensionCarryover = calculateMaxPensionContribution(income, carryoverSipp);
+                const higherMaxPensionCarryover = calculateMaxPensionContribution(income + increment, carryoverSipp);
+                const currentSippCarryoverCalc = calculateTotalTax(income, currentMaxPensionCarryover);
+                const higherSippCarryoverCalc = calculateTotalTax(income + increment, higherMaxPensionCarryover);
+                const currentSippCarryoverNet = currentSippCarryoverCalc.netIncome + currentMaxPensionCarryover;
+                const higherSippCarryoverNet = higherSippCarryoverCalc.netIncome + higherMaxPensionCarryover;
+                
+                const sippEffectiveRateCarryover = (1 - ((higherSippCarryoverNet - currentSippCarryoverNet) / increment)) * 100;
+                
+                incomeTaxRates.push(marginalIncomeTax);
+                niRates.push(marginalNI);
+                combinedRates.push(marginalCombined);
+                sippEffectiveRates.push(sippEffectiveRate);
+                sippEffectiveRatesWithCarryover.push(sippEffectiveRateCarryover);
+            }
+            
+            const chartDom = document.getElementById('marginalTaxChart');
+            if (!marginalTaxChart) {
+                marginalTaxChart = echarts.init(chartDom);
+            }
+            
+            const option = {
+                title: {
+                    text: 'Marginal Tax Rates up to £500k',
+                    left: 'center',
+                    textStyle: { fontSize: 14 }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const income = params[0].axisValue;
+                        let result = `Income: £${parseInt(income).toLocaleString()}<br>`;
+                        params.forEach(param => {
+                            result += `${param.seriesName}: ${param.value.toFixed(1)}%<br>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['Income Tax', 'National Insurance', 'Combined', 'Max SIPP (£60k)', carryoverSipp > 0 ? 'Max SIPP (+Carryover)' : null].filter(Boolean),
+                    bottom: 5
+                },
+                xAxis: {
+                    type: 'category',
+                    data: incomes.map(i => i.toLocaleString()),
+                    axisLabel: {
+                        formatter: function(value, index) {
+                            return index % 40 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
+                        }
+                    },
+                    name: 'Gross Income',
+                    nameLocation: 'center',
+                    nameGap: 30
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Marginal Rate (%)',
+                    min: 0,
+                    max: 100,
+                    axisLabel: {
+                        formatter: function(value) {
+                            return `${value}%`;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: 'Income Tax',
+                        data: incomeTaxRates,
+                        type: 'line',
+                        step: 'end',
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#e74c3c' }
+                    },
+                    {
+                        name: 'National Insurance',
+                        data: niRates,
+                        type: 'line',
+                        step: 'end',
+                        lineStyle: { width: 2 },
+                        itemStyle: { color: '#f39c12' }
+                    },
+                    {
+                        name: 'Combined',
+                        data: combinedRates,
+                        type: 'line',
+                        step: 'end',
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#2c3e50' }
+                    },
+                    {
+                        name: 'Max SIPP (£60k)',
+                        data: sippEffectiveRates,
+                        type: 'line',
+                        step: 'end',
+                        lineStyle: { width: 2, type: 'dashed' },
+                        itemStyle: { color: '#27ae60' }
+                    }
+                ].concat(carryoverSipp > 0 ? [{
+                    name: 'Max SIPP (+Carryover)',
+                    data: sippEffectiveRatesWithCarryover,
+                    type: 'line',
+                    step: 'end',
+                    lineStyle: { width: 2, type: 'dashed' },
+                    itemStyle: { color: '#16a085' }
+                }] : []),
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '15%'
+                }
+            };
+            
+            marginalTaxChart.setOption(option);
         }
 
         function generateBreakdownTable(fullTimeIncome, carryoverSipp) {
@@ -480,6 +643,18 @@ date: 2025-08-06
             // Show ALL data points from the chart (all 20 points from 5% to 100%)
             for (let i = 0; i < sharedData.length; i++) {
                 const dataPoint = sharedData[i];
+                const prevDataPoint = i > 0 ? sharedData[i-1] : null;
+                
+                // Calculate Δ NO from previous step
+                let noSippDeltaNO, maxDeltaNO;
+                if (prevDataPoint) {
+                    noSippDeltaNO = dataPoint.noSippNet - prevDataPoint.noSippNet;
+                    maxDeltaNO = dataPoint.maxNet - prevDataPoint.maxNet;
+                } else {
+                    // First row - delta from 0
+                    noSippDeltaNO = dataPoint.noSippNet;
+                    maxDeltaNO = dataPoint.maxNet;
+                }
                 
                 breakdownData.push({
                     percentage: `${Math.round(dataPoint.percentage)}%`,
@@ -493,6 +668,7 @@ date: 2025-08-06
                     noSippTax: dataPoint.noSippTax,
                     noSippNI: dataPoint.noSippNI,
                     noSippNet: dataPoint.noSippNet,
+                    noSippDeltaNO: noSippDeltaNO,
                     noSippMNO: dataPoint.mnoNoSipp,
                     
                     // Max SIPP scenario
@@ -500,6 +676,7 @@ date: 2025-08-06
                     maxTax: dataPoint.maxTax,
                     maxNI: dataPoint.maxNI,
                     maxNet: dataPoint.maxNet,
+                    maxDeltaNO: maxDeltaNO,
                     maxMNO: dataPoint.mnoMax
                 });
             }
@@ -514,19 +691,21 @@ date: 2025-08-06
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Work Days</th>
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Holidays</th>
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Net Work Days</th>
-                            <th colspan="5" style="border: 1px solid #ddd; padding: 3px; background: #ffe6e6;">No SIPP (£0)</th>
-                            <th colspan="5" style="border: 1px solid #ddd; padding: 3px; background: #e6ffe6;">Max SIPP</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #ffe6e6;">No SIPP (£0)</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #e6ffe6;">Max SIPP</th>
                         </tr>
                         <tr style="background: #f8f9fa; font-size: 9px;">
                             <th style="border: 1px solid #ddd; padding: 2px;">SIPP</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">Tax</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">NI</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">NO</th>
+                            <th style="border: 1px solid #ddd; padding: 2px;">Δ NO</th>
                             <th style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold;">MNO</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">SIPP</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">Tax</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">NI</th>
                             <th style="border: 1px solid #ddd; padding: 2px;">NO</th>
+                            <th style="border: 1px solid #ddd; padding: 2px;">Δ NO</th>
                             <th style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold;">MNO</th>
                         </tr>
                     </thead>
@@ -545,11 +724,13 @@ date: 2025-08-06
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.noSippTax / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.noSippNI / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.noSippNet / 1000)}k</td>
+                        <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.noSippDeltaNO / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold;">£${Math.round(row.noSippMNO)}</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.maxSipp / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.maxTax / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.maxNI / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.maxNet / 1000)}k</td>
+                        <td style="border: 1px solid #ddd; padding: 2px;">£${Math.round(row.maxDeltaNO / 1000)}k</td>
                         <td style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold;">£${Math.round(row.maxMNO)}</td>
                     </tr>
                 `;
@@ -573,6 +754,7 @@ date: 2025-08-06
 
         window.addEventListener('resize', function() {
             if (efficiencyChart) efficiencyChart.resize();
+            if (marginalTaxChart) marginalTaxChart.resize();
         });
     </script>
 </body>
