@@ -142,12 +142,23 @@ date: 2025-08-06
 <body>
     <h1>Marginal Net Outcome</h1>
     
+    <p>Channeling <a href="https://taxpolicy.org.uk/about/" target="_blank" style="color: #3498db;">Dan Niedle at Tax Policy Associates</a>, let's understand the tax efficiency of working different intensities.</p>
+    
     <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
             Net Income + SIPP Contribution = <span style="color: #3498db;">Net Outcome (NO)</span>
         </div>
         <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
             (treating pension as income since it's money you keep)
+        </div>
+    </div>
+    
+    <div style="background: #e8f5e8; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
+            Change in NO per Additional Working Day = <span style="color: #27ae60;">Marginal Net Outcome (MNO)</span>
+        </div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
+            (how much extra you get for each extra day worked)
         </div>
     </div>
     
@@ -285,39 +296,27 @@ date: 2025-08-06
         }
 
         let efficiencyChart;
+        let sharedData = []; // Single source of truth for both chart and table
 
-        function updateChart() {
-            const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
-            const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
-            const workingDaysPerYear = 365 - 104 - 28; // 365 days - weekends - holidays = 233 working days
+        function calculateSharedData(fullTimeIncome, carryoverSipp) {
+            const workingDaysPerYear = 365 - 104 - 28;
+            const data = [];
             
-            const partTimeData = [];
-            const noPensionRates = [];
-            const minPensionRates = [];
-            const maxPensionRates = [];
-            
-            // Calculate marginal rates with fine granularity to catch discontinuities
             for (let i = 1; i <= 20; i++) {
-                const daysPerWeek = (i / 20) * 5; // From 0.25 days to 5 days per week
+                const daysPerWeek = (i / 20) * 5;
                 const percentFullTime = (daysPerWeek / 5) * 100;
                 const currentIncome = fullTimeIncome * (daysPerWeek / 5);
                 const previousDaysPerWeek = i > 1 ? ((i - 1) / 20) * 5 : 0;
                 const previousIncome = fullTimeIncome * (previousDaysPerWeek / 5);
-                const stepSizeDays = (workingDaysPerYear / 5) * (1 / 20); // Days added in this step
+                const stepSizeDays = (workingDaysPerYear / 5) * (1 / 20);
                 
                 // No pension scenario - marginal calculation
                 const currentNoPension = calculateTotalTax(currentIncome, 0);
                 const previousNoPension = calculateTotalTax(previousIncome, 0);
                 const marginalNoPension = (currentNoPension.netIncome - previousNoPension.netIncome) / stepSizeDays;
                 
-                // Min SIPP scenario - marginal calculation
-                const currentMinPension = calculateMaxPensionContribution(currentIncome, 0);
-                const previousMinPension = calculateMaxPensionContribution(previousIncome, 0);
-                const currentMinCalc = calculateTotalTax(currentIncome, currentMinPension);
-                const previousMinCalc = calculateTotalTax(previousIncome, previousMinPension);
-                const currentMinNet = currentMinCalc.netIncome + currentMinPension;
-                const previousMinNet = previousMinCalc.netIncome + previousMinPension;
-                const marginalMinPension = (currentMinNet - previousMinNet) / stepSizeDays;
+                // Min SIPP scenario (always 0 contribution) - marginal calculation
+                const marginalMinPension = marginalNoPension; // Same as no pension since min is 0
                 
                 // Max SIPP scenario - marginal calculation
                 const currentMaxPension = calculateMaxPensionContribution(currentIncome, carryoverSipp);
@@ -328,11 +327,51 @@ date: 2025-08-06
                 const previousMaxNet = previousMaxCalc.netIncome + previousMaxPension;
                 const marginalMaxPension = (currentMaxNet - previousMaxNet) / stepSizeDays;
                 
-                partTimeData.push(percentFullTime);
-                noPensionRates.push(marginalNoPension);
-                minPensionRates.push(marginalMinPension);
-                maxPensionRates.push(marginalMaxPension);
+                // Calculate work days and holidays for this intensity
+                const fullTimeWorkDays = 365 - 104; // 365 days - weekends = 261
+                const fullTimeHolidays = 28;
+                const actualWorkDays = Math.round(fullTimeWorkDays * (daysPerWeek / 5));
+                const actualHolidays = Math.round(fullTimeHolidays * (daysPerWeek / 5));
+                
+                data.push({
+                    i: i,
+                    percentage: percentFullTime,
+                    grossIncome: currentIncome,
+                    workDays: actualWorkDays,
+                    holidays: actualHolidays,
+                    
+                    // Marginal rates (for chart)
+                    marginalMin: marginalMinPension,
+                    marginalMax: marginalMaxPension,
+                    
+                    // Tax breakdown (for table)
+                    minSipp: 0,
+                    minTax: currentNoPension.incomeTax,
+                    minNI: currentNoPension.nationalInsurance,
+                    minNet: currentNoPension.netIncome,
+                    
+                    maxSipp: currentMaxPension,
+                    maxTax: currentMaxCalc.incomeTax,
+                    maxNI: currentMaxCalc.nationalInsurance,
+                    maxNet: currentMaxNet
+                });
             }
+            
+            return data;
+        }
+
+        function updateChart() {
+            const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
+            const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
+            
+            // Calculate shared data once
+            sharedData = calculateSharedData(fullTimeIncome, carryoverSipp);
+            
+            // Extract chart data from shared data
+            const partTimeData = sharedData.map(d => d.percentage);
+            const noPensionRates = sharedData.map(d => d.marginalMin);
+            const minPensionRates = sharedData.map(d => d.marginalMin);
+            const maxPensionRates = sharedData.map(d => d.marginalMax);
             
             const chartDom = document.getElementById('efficiencyChart');
             if (!efficiencyChart) {
@@ -449,77 +488,47 @@ date: 2025-08-06
         }
 
         function generateBreakdownTable(fullTimeIncome, carryoverSipp) {
-            const workingDaysPerYear = 365 - 104 - 28;
             const breakdownData = [];
             
-            // Calculate marginal rates (same logic as chart)
-            const marginalData = [];
-            for (let i = 1; i <= 5; i++) {
-                const daysPerWeek = i;
-                const currentIncome = fullTimeIncome * (daysPerWeek / 5);
-                const previousDaysPerWeek = i > 1 ? i - 1 : 0;
-                const previousIncome = fullTimeIncome * (previousDaysPerWeek / 5);
-                const stepSizeDays = workingDaysPerYear / 5; // Days added per step
-                
-                // Min SIPP marginal
-                const currentMinCalc = calculateTotalTax(currentIncome, 0);
-                const previousMinCalc = calculateTotalTax(previousIncome, 0);
-                const marginalMin = (currentMinCalc.netIncome - previousMinCalc.netIncome) / stepSizeDays;
-                
-                // Max SIPP marginal
-                const currentMaxPension = calculateMaxPensionContribution(currentIncome, carryoverSipp);
-                const previousMaxPension = calculateMaxPensionContribution(previousIncome, carryoverSipp);
-                const currentMaxCalc = calculateTotalTax(currentIncome, currentMaxPension);
-                const previousMaxCalc = calculateTotalTax(previousIncome, previousMaxPension);
-                const currentMaxNet = currentMaxCalc.netIncome + currentMaxPension;
-                const previousMaxNet = previousMaxCalc.netIncome + previousMaxPension;
-                const marginalMax = (currentMaxNet - previousMaxNet) / stepSizeDays;
-                
-                marginalData.push({
-                    marginalMin: marginalMin,
-                    marginalMax: marginalMax
-                });
-            }
+            // Use the exact same shared data as the chart
+            // Extract the 5 data points we want for the table (20%, 40%, 60%, 80%, 100%)
+            const chartPoints = [4, 8, 12, 16, 20]; // Which chart points correspond to 20%, 40%, 60%, 80%, 100%
+            const workingDaysPerYear = 365 - 104 - 28;
             
-            // Generate data for key percentages (20%, 40%, 60%, 80%, 100%)
-            for (let i = 1; i <= 5; i++) {
-                const daysPerWeek = i;
-                const percentFullTime = (i / 5) * 100;
-                const grossIncome = fullTimeIncome * (i / 5);
+            for (let tableRow = 0; tableRow < 5; tableRow++) {
+                const i = chartPoints[tableRow];
+                const dataPoint = sharedData[i-1]; // Get data from shared source
                 
-                // Min SIPP scenario (always 0)
-                const minPensionContrib = 0;
-                const minPensionCalc = calculateTotalTax(grossIncome, minPensionContrib);
+                // Calculate Δ NO (delta from previous step)
+                const stepSizeDays = workingDaysPerYear / 5; // Days in this 20% step
+                const minDeltaNO = dataPoint.marginalMin * stepSizeDays;
+                const maxDeltaNO = dataPoint.marginalMax * stepSizeDays;
                 
-                // Max SIPP scenario (including carryover and tapering)
-                const maxPensionContrib = calculateMaxPensionContribution(grossIncome, carryoverSipp);
-                const maxPensionCalc = calculateTotalTax(grossIncome, maxPensionContrib);
-                
-                // Calculate work days and holidays for this intensity
-                const fullTimeWorkDays = 365 - 104; // 365 days - weekends = 261
-                const fullTimeHolidays = 28;
-                const actualWorkDays = Math.round(fullTimeWorkDays * (daysPerWeek / 5));
-                const actualHolidays = Math.round(fullTimeHolidays * (daysPerWeek / 5));
+                // MNO = Marginal NO per working day (should match chart exactly)
+                const minMNO = dataPoint.marginalMin;
+                const maxMNO = dataPoint.marginalMax;
                 
                 breakdownData.push({
-                    percentage: `${percentFullTime}%`,
-                    grossIncome: grossIncome,
-                    workDays: actualWorkDays,
-                    holidays: actualHolidays,
+                    percentage: `${Math.round(dataPoint.percentage)}%`,
+                    grossIncome: dataPoint.grossIncome,
+                    workDays: dataPoint.workDays,
+                    holidays: dataPoint.holidays,
                     
                     // Min SIPP (0 contribution)
-                    minSipp: minPensionContrib,
-                    minTax: minPensionCalc.incomeTax,
-                    minNI: minPensionCalc.nationalInsurance,
-                    minNet: minPensionCalc.netIncome + minPensionContrib,
-                    minMarginal: marginalData[i-1].marginalMin,
+                    minSipp: dataPoint.minSipp,
+                    minTax: dataPoint.minTax,
+                    minNI: dataPoint.minNI,
+                    minNet: dataPoint.minNet,
+                    minDeltaNO: minDeltaNO,
+                    minMNO: minMNO,
                     
                     // Max SIPP (with carryover and tapering)
-                    maxSipp: maxPensionContrib,
-                    maxTax: maxPensionCalc.incomeTax,
-                    maxNI: maxPensionCalc.nationalInsurance,
-                    maxNet: maxPensionCalc.netIncome + maxPensionContrib,
-                    maxMarginal: marginalData[i-1].marginalMax
+                    maxSipp: dataPoint.maxSipp,
+                    maxTax: dataPoint.maxTax,
+                    maxNI: dataPoint.maxNI,
+                    maxNet: dataPoint.maxNet,
+                    maxDeltaNO: maxDeltaNO,
+                    maxMNO: maxMNO
                 });
             }
             
@@ -531,8 +540,8 @@ date: 2025-08-06
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 4px;">Gross Income</th>
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 4px;">Work Days</th>
                             <th rowspan="2" style="border: 1px solid #ddd; padding: 4px;">Holidays</th>
-                            <th colspan="5" style="border: 1px solid #ddd; padding: 4px; background: #ffe6e6;">Min SIPP (£0)</th>
-                            <th colspan="5" style="border: 1px solid #ddd; padding: 4px; background: #e6ffe6;">Max SIPP (+Carryover)</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 4px; background: #ffe6e6;">Min SIPP (£0)</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 4px; background: #e6ffe6;">Max SIPP (+Carryover)</th>
                         </tr>
                         <tr style="background: #f8f9fa; font-size: 10px;">
                             <th style="border: 1px solid #ddd; padding: 4px;">SIPP</th>
@@ -540,11 +549,13 @@ date: 2025-08-06
                             <th style="border: 1px solid #ddd; padding: 4px;">NI</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">NO</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">Δ NO</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">MNO</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">SIPP</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">Income Tax</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">NI</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">NO</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">Δ NO</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">MNO</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -561,12 +572,14 @@ date: 2025-08-06
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.minTax).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.minNI).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.minNet).toLocaleString()}</td>
-                        <td style="border: 1px solid #ddd; padding: 3px; background: #fff0f0;">£${Math.round(row.minMarginal).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.minDeltaNO).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; background: #fff0f0;">£${Math.round(row.minMNO).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.maxSipp).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.maxTax).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.maxNI).toLocaleString()}</td>
                         <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.maxNet).toLocaleString()}</td>
-                        <td style="border: 1px solid #ddd; padding: 3px; background: #f0fff0;">£${Math.round(row.maxMarginal).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px;">£${Math.round(row.maxDeltaNO).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; background: #f0fff0;">£${Math.round(row.maxMNO).toLocaleString()}</td>
                     </tr>
                 `;
             });
