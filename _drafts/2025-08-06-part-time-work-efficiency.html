@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Marginal Net Income"
-description: "Calculate the marginal net income rate per working day at different work intensities, showing the tax efficiency of working additional days."
-excerpt: "Discover how much additional net income you get per extra day worked due to progressive taxation and pension contribution limits."
+title: "Marginal Net Outcome"
+description: "Calculate the marginal net outcome rate per working day at different work intensities, showing the tax efficiency of working additional days."
+excerpt: "Discover how much additional net outcome you get per extra day worked due to progressive taxation and pension contribution limits."
 tags: [UK, tax, marginal, efficiency, SIPP, 2025-26]
 categories: [Finance, Tools]
 date: 2025-08-06
@@ -13,7 +13,7 @@ date: 2025-08-06
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marginal Net Income</title>
+    <title>Marginal Net Outcome</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         body {
@@ -140,8 +140,18 @@ date: 2025-08-06
     </style>
 </head>
 <body>
-    <h1>Marginal Net Income</h1>
-    <p>Calculate your marginal net income rate per working day at different work intensities. This shows how much additional net income you get per extra day worked due to progressive taxation and pension limits.</p>
+    <h1>Marginal Net Outcome</h1>
+    
+    <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
+            Net Income + SIPP Contribution = <span style="color: #3498db;">Net Outcome (NO)</span>
+        </div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
+            (treating pension as income since it's money you keep)
+        </div>
+    </div>
+    
+    <p>Calculate your marginal net outcome rate per working day at different work intensities. This shows how much additional net outcome you get per extra day worked due to progressive taxation and pension limits.</p>
 
     <div class="calculator-container">
         <h2>Calculator Settings</h2>
@@ -156,7 +166,7 @@ date: 2025-08-06
             <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
         </div>
         
-        <button onclick="updateChart()">Calculate Marginal Rates</button>
+        <button onclick="updateChart()">Calculate Marginal NO Rates</button>
     </div>
 
     <div class="examples-container">
@@ -173,7 +183,7 @@ date: 2025-08-06
     </div>
 
     <div class="chart">
-        <h3>Marginal Net Income Rate per Working Day</h3>
+        <h3>Marginal Net Outcome (NO) Rate per Working Day</h3>
         <div id="efficiencyChart" class="chart-wrapper"></div>
     </div>
 
@@ -395,7 +405,7 @@ date: 2025-08-06
                         const percent = params[0].axisValue;
                         let result = `Working ${percent} of full time<br>`;
                         params.forEach(param => {
-                            result += `${param.seriesName}: £${Math.round(param.value)} per day<br>`;
+                            result += `${param.seriesName}: £${Math.round(param.value)} NO per day<br>`;
                         });
                         return result;
                     }
@@ -413,7 +423,7 @@ date: 2025-08-06
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'Marginal Net Income per Working Day (£)',
+                    name: 'Marginal Net Outcome per Working Day (£)',
                     nameRotate: 90,
                     nameLocation: 'middle',
                     nameGap: 50,
@@ -528,13 +538,13 @@ date: 2025-08-06
                             <th style="border: 1px solid #ddd; padding: 4px;">SIPP</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">Income Tax</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">NI</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">Net+SIPP</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">Δ Net+SIPP</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">NO</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">Δ NO</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">SIPP</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">Income Tax</th>
                             <th style="border: 1px solid #ddd; padding: 4px;">NI</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">Net+SIPP</th>
-                            <th style="border: 1px solid #ddd; padding: 4px;">Δ Net+SIPP</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">NO</th>
+                            <th style="border: 1px solid #ddd; padding: 4px;">Δ NO</th>
                         </tr>
                     </thead>
                     <tbody>
