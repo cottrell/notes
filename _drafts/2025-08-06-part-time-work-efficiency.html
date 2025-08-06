@@ -1,9 +1,9 @@
 ---
 layout: post
-title: "Part-Time Work Efficiency Calculator"
-description: "Calculate the net income rate per working day at different part-time percentages, showing the tax efficiency of working less."
-excerpt: "Discover whether working part-time gives you better net income per day worked due to progressive taxation and pension contribution limits."
-tags: [UK, tax, part-time, efficiency, SIPP, 2025-26]
+title: "Marginal Net Income"
+description: "Calculate the marginal net income rate per working day at different work intensities, showing the tax efficiency of working additional days."
+excerpt: "Discover how much additional net income you get per extra day worked due to progressive taxation and pension contribution limits."
+tags: [UK, tax, marginal, efficiency, SIPP, 2025-26]
 categories: [Finance, Tools]
 date: 2025-08-06
 ---
@@ -13,7 +13,7 @@ date: 2025-08-06
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Part-Time Work Efficiency Calculator</title>
+    <title>Marginal Net Income</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         body {
@@ -140,8 +140,8 @@ date: 2025-08-06
     </style>
 </head>
 <body>
-    <h1>Part-Time Work Efficiency Calculator</h1>
-    <p>Calculate your net income rate per working day at different part-time percentages. This shows whether working fewer days gives you better value per day worked due to progressive taxation.</p>
+    <h1>Marginal Net Income</h1>
+    <p>Calculate your marginal net income rate per working day at different work intensities. This shows how much additional net income you get per extra day worked due to progressive taxation and pension limits.</p>
 
     <div class="calculator-container">
         <h2>Calculator Settings</h2>
@@ -156,11 +156,10 @@ date: 2025-08-06
             <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
         </div>
         
-        <button onclick="updateChart()">Calculate Efficiency</button>
+        <button onclick="updateChart()">Calculate Marginal Rates</button>
     </div>
 
     <div class="examples-container">
-        <h3>Quick Examples</h3>
         <p>Try these common salary levels:</p>
         <div class="example-buttons">
             <button class="example-btn" onclick="setExample(30000, 0)">£30k</button>
@@ -175,7 +174,7 @@ date: 2025-08-06
     </div>
 
     <div class="chart">
-        <h3>Net Income Rate per Working Day</h3>
+        <h3>Marginal Net Income Rate per Working Day</h3>
         <div id="efficiencyChart" class="chart-wrapper"></div>
     </div>
 
@@ -331,7 +330,7 @@ date: 2025-08-06
                     name: 'No Pension',
                     data: noPensionRates,
                     type: 'line',
-                    smooth: true,
+                    step: 'end',
                     lineStyle: { width: 3 },
                     itemStyle: { color: '#e74c3c' },
                     markPoint: {
@@ -347,7 +346,7 @@ date: 2025-08-06
                     name: 'Min SIPP (£60k allowance)',
                     data: minPensionRates,
                     type: 'line',
-                    smooth: true,
+                    step: 'end',
                     lineStyle: { width: 3 },
                     itemStyle: { color: '#3498db' },
                     markPoint: {
@@ -367,7 +366,7 @@ date: 2025-08-06
                     name: `Max SIPP (+£${carryoverSipp.toLocaleString()} carryover)`,
                     data: maxPensionRates,
                     type: 'line',
-                    smooth: true,
+                    step: 'end',
                     lineStyle: { width: 3 },
                     itemStyle: { color: '#2ecc71' },
                     markPoint: {
@@ -410,7 +409,7 @@ date: 2025-08-06
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'Net Income per Working Day (£)',
+                    name: 'Marginal Net Income per Working Day (£)',
                     axisLabel: {
                         formatter: function(value) {
                             return `£${Math.round(value)}`;
