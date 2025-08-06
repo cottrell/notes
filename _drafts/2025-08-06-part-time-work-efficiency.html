@@ -435,7 +435,10 @@ date: 2025-08-06
                     trigger: 'axis',
                     formatter: function(params) {
                         const percent = params[0].axisValue;
+                        const dataIndex = params[0].dataIndex;
+                        const grossIncome = sharedData[dataIndex].grossIncome;
                         let result = `Working ${percent} of full time<br>`;
+                        result += `Gross Income: £${Math.round(grossIncome).toLocaleString()}<br>`;
                         params.forEach(param => {
                             result += `${param.seriesName}: £${Math.round(param.value)} NO per day<br>`;
                         });
