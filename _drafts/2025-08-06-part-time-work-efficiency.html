@@ -1,0 +1,447 @@
+---
+layout: post
+title: "Part-Time Work Efficiency Calculator"
+description: "Calculate the net income rate per working day at different part-time percentages, showing the tax efficiency of working less."
+excerpt: "Discover whether working part-time gives you better net income per day worked due to progressive taxation and pension contribution limits."
+tags: [UK, tax, part-time, efficiency, SIPP, 2025-26]
+categories: [Finance, Tools]
+date: 2025-08-06
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part-Time Work Efficiency Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+
+        .calculator-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: 600;
+            color: #34495e;
+            min-width: 200px;
+        }
+
+        input {
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            width: 150px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .chart {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .chart-wrapper {
+            width: 100%;
+            height: 500px;
+        }
+
+        .examples-container {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+
+        .example-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .example-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .example-btn:hover {
+            background: #dee2e6;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            label {
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Part-Time Work Efficiency Calculator</h1>
+    <p>Calculate your net income rate per working day at different part-time percentages. This shows whether working fewer days gives you better value per day worked due to progressive taxation.</p>
+
+    <div class="calculator-container">
+        <h2>Calculator Settings</h2>
+        
+        <div class="input-group">
+            <label for="grossIncome">Full-Time Gross Annual Salary (£):</label>
+            <input type="number" id="grossIncome" value="50000" min="0" max="500000" step="1000">
+        </div>
+        
+        <div class="input-group">
+            <label for="carryoverSipp">Carry-Over SIPP Allowance (£):</label>
+            <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
+        </div>
+        
+        <button onclick="updateChart()">Calculate Efficiency</button>
+    </div>
+
+    <div class="examples-container">
+        <h3>Quick Examples</h3>
+        <p>Try these common salary levels:</p>
+        <div class="example-buttons">
+            <button class="example-btn" onclick="setExample(30000, 0)">£30k</button>
+            <button class="example-btn" onclick="setExample(50000, 0)">£50k</button>
+            <button class="example-btn" onclick="setExample(80000, 0)">£80k</button>
+            <button class="example-btn" onclick="setExample(120000, 0)">£120k</button>
+            <button class="example-btn" onclick="setExample(200000, 0)">£200k</button>
+            <button class="example-btn" onclick="setExample(300000, 0)">£300k</button>
+            <button class="example-btn" onclick="setExample(400000, 0)">£400k</button>
+            <button class="example-btn" onclick="setExample(500000, 0)">£500k</button>
+        </div>
+    </div>
+
+    <div class="chart">
+        <h3>Net Income Rate per Working Day</h3>
+        <div id="efficiencyChart" class="chart-wrapper"></div>
+    </div>
+
+    <script>
+        const taxData2025 = {
+            incomeTax: {
+                personalAllowance: 12570,
+                personalAllowanceReductionStart: 100000,
+                personalAllowanceReductionRate: 0.5,
+                bands: [
+                    { min: 12570, max: 50270, rate: 0.20, name: "Basic Rate" },
+                    { min: 50270, max: 125140, rate: 0.40, name: "Higher Rate" },
+                    { min: 125140, max: Infinity, rate: 0.45, name: "Additional Rate" }
+                ]
+            },
+            nationalInsurance: {
+                rates: [
+                    { min: 0, max: 12570, rate: 0.00 },
+                    { min: 12570, max: 50284, rate: 0.08 },
+                    { min: 50284, max: Infinity, rate: 0.02 }
+                ]
+            },
+            pension: {
+                annualAllowance: 60000,
+                minimumContribution: 3600,
+                taperedAllowanceStart: 260000,
+                taperedAllowanceMinimum: 10000,
+                taperedRate: 0.5
+            }
+        };
+
+        function calculatePersonalAllowance(grossIncome) {
+            if (grossIncome <= taxData2025.incomeTax.personalAllowanceReductionStart) {
+                return taxData2025.incomeTax.personalAllowance;
+            }
+            
+            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) * 
+                             taxData2025.incomeTax.personalAllowanceReductionRate;
+            return Math.max(0, taxData2025.incomeTax.personalAllowance - reduction);
+        }
+
+        function calculateIncomeTax(grossIncome, pensionContribution = 0) {
+            const taxableIncome = Math.max(0, grossIncome - pensionContribution);
+            const personalAllowance = calculatePersonalAllowance(taxableIncome);
+            const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
+            
+            let tax = 0;
+            for (const band of taxData2025.incomeTax.bands) {
+                if (taxableAmount > band.min) {
+                    const taxableInBand = Math.min(taxableAmount, band.max) - band.min;
+                    tax += taxableInBand * band.rate;
+                }
+            }
+            
+            return tax;
+        }
+
+        function calculateNationalInsurance(grossIncome, pensionContribution = 0) {
+            const niableIncome = Math.max(0, grossIncome - pensionContribution);
+            let ni = 0;
+            
+            for (const band of taxData2025.nationalInsurance.rates) {
+                if (niableIncome > band.min) {
+                    const niableInBand = Math.min(niableIncome, band.max) - band.min;
+                    ni += niableInBand * band.rate;
+                }
+            }
+            
+            return ni;
+        }
+
+        function calculateMaxPensionContribution(grossIncome, carryoverAllowance = 0) {
+            let allowance = taxData2025.pension.annualAllowance + carryoverAllowance;
+            
+            if (grossIncome > taxData2025.pension.taperedAllowanceStart) {
+                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) * 
+                                 taxData2025.pension.taperedRate;
+                allowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, allowance - reduction);
+            }
+            
+            return Math.min(allowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
+        }
+
+        function calculateTotalTax(grossIncome, pensionContribution = 0) {
+            const incomeTax = calculateIncomeTax(grossIncome, pensionContribution);
+            const nationalInsurance = calculateNationalInsurance(grossIncome, pensionContribution);
+            
+            return {
+                incomeTax,
+                nationalInsurance,
+                total: incomeTax + nationalInsurance,
+                netIncome: grossIncome - incomeTax - nationalInsurance - pensionContribution
+            };
+        }
+
+        let efficiencyChart;
+
+        function updateChart() {
+            const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
+            const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
+            const workingDaysPerYear = 365 - 104 - 28; // 365 days - weekends - holidays = 233 working days
+            
+            const partTimeData = [];
+            const noPensionRates = [];
+            const minPensionRates = [];
+            const maxPensionRates = [];
+            
+            // Calculate marginal rates with fine granularity to catch discontinuities
+            for (let i = 1; i <= 20; i++) {
+                const daysPerWeek = (i / 20) * 5; // From 0.25 days to 5 days per week
+                const percentFullTime = (daysPerWeek / 5) * 100;
+                const currentIncome = fullTimeIncome * (daysPerWeek / 5);
+                const previousDaysPerWeek = i > 1 ? ((i - 1) / 20) * 5 : 0;
+                const previousIncome = fullTimeIncome * (previousDaysPerWeek / 5);
+                const stepSizeDays = (workingDaysPerYear / 5) * (1 / 20); // Days added in this step
+                
+                // No pension scenario - marginal calculation
+                const currentNoPension = calculateTotalTax(currentIncome, 0);
+                const previousNoPension = calculateTotalTax(previousIncome, 0);
+                const marginalNoPension = (currentNoPension.netIncome - previousNoPension.netIncome) / stepSizeDays;
+                
+                // Min SIPP scenario - marginal calculation
+                const currentMinPension = calculateMaxPensionContribution(currentIncome, 0);
+                const previousMinPension = calculateMaxPensionContribution(previousIncome, 0);
+                const currentMinCalc = calculateTotalTax(currentIncome, currentMinPension);
+                const previousMinCalc = calculateTotalTax(previousIncome, previousMinPension);
+                const currentMinNet = currentMinCalc.netIncome + currentMinPension;
+                const previousMinNet = previousMinCalc.netIncome + previousMinPension;
+                const marginalMinPension = (currentMinNet - previousMinNet) / stepSizeDays;
+                
+                // Max SIPP scenario - marginal calculation
+                const currentMaxPension = calculateMaxPensionContribution(currentIncome, carryoverSipp);
+                const previousMaxPension = calculateMaxPensionContribution(previousIncome, carryoverSipp);
+                const currentMaxCalc = calculateTotalTax(currentIncome, currentMaxPension);
+                const previousMaxCalc = calculateTotalTax(previousIncome, previousMaxPension);
+                const currentMaxNet = currentMaxCalc.netIncome + currentMaxPension;
+                const previousMaxNet = previousMaxCalc.netIncome + previousMaxPension;
+                const marginalMaxPension = (currentMaxNet - previousMaxNet) / stepSizeDays;
+                
+                partTimeData.push(percentFullTime);
+                noPensionRates.push(marginalNoPension);
+                minPensionRates.push(marginalMinPension);
+                maxPensionRates.push(marginalMaxPension);
+            }
+            
+            const chartDom = document.getElementById('efficiencyChart');
+            if (!efficiencyChart) {
+                efficiencyChart = echarts.init(chartDom);
+            }
+            
+            const series = [
+                {
+                    name: 'No Pension',
+                    data: noPensionRates,
+                    type: 'line',
+                    smooth: true,
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#e74c3c' },
+                    markPoint: {
+                        data: [{ type: 'max', name: 'Peak Rate' }],
+                        label: {
+                            formatter: function(param) {
+                                return `£${Math.round(param.value)}`;
+                            }
+                        }
+                    }
+                },
+                {
+                    name: 'Min SIPP (£60k allowance)',
+                    data: minPensionRates,
+                    type: 'line',
+                    smooth: true,
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#3498db' },
+                    markPoint: {
+                        data: [{ type: 'max', name: 'Peak Rate' }],
+                        label: {
+                            formatter: function(param) {
+                                return `£${Math.round(param.value)}`;
+                            }
+                        }
+                    }
+                }
+            ];
+
+            // Only show max SIPP line if there's carryover allowance
+            if (carryoverSipp > 0) {
+                series.push({
+                    name: `Max SIPP (+£${carryoverSipp.toLocaleString()} carryover)`,
+                    data: maxPensionRates,
+                    type: 'line',
+                    smooth: true,
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#2ecc71' },
+                    markPoint: {
+                        data: [{ type: 'max', name: 'Peak Rate' }],
+                        label: {
+                            formatter: function(param) {
+                                return `£${Math.round(param.value)}`;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            const option = {
+                title: {
+                    text: `£${fullTimeIncome.toLocaleString()} Full-Time Salary`,
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const percent = params[0].axisValue;
+                        let result = `Working ${percent} of full time<br>`;
+                        params.forEach(param => {
+                            result += `${param.seriesName}: £${Math.round(param.value)} per day<br>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: series.map(s => s.name),
+                    bottom: 5
+                },
+                xAxis: {
+                    type: 'category',
+                    data: partTimeData.map(p => `${p}%`),
+                    name: '% of Full Time',
+                    nameLocation: 'center',
+                    nameGap: 30
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Net Income per Working Day (£)',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return `£${Math.round(value)}`;
+                        }
+                    }
+                },
+                series: series,
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%',
+                    top: '15%'
+                }
+            };
+            
+            efficiencyChart.setOption(option);
+        }
+
+        function setExample(salary, carryover) {
+            document.getElementById('grossIncome').value = salary;
+            document.getElementById('carryoverSipp').value = carryover;
+            updateChart();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateChart();
+        });
+
+        window.addEventListener('resize', function() {
+            if (efficiencyChart) efficiencyChart.resize();
+        });
+    </script>
+</body>
+</html>
