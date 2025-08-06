@@ -317,11 +317,11 @@ date: 2025-08-06
                 const maxSippCalc = calculateTotalTax(currentIncome, maxPension);
                 const maxNet = maxSippCalc.netIncome + maxPension;
                 
-                // Calculate work days and holidays for this intensity
+                // Calculate work days and holidays for this intensity (avoid rounding errors)
                 const fullTimeWorkDays = 365 - 104; // 365 days - weekends = 261
                 const fullTimeHolidays = 28;
-                const actualWorkDays = Math.round(fullTimeWorkDays * (daysPerWeek / 5));
-                const actualHolidays = Math.round(fullTimeHolidays * (daysPerWeek / 5));
+                const actualWorkDays = fullTimeWorkDays * (daysPerWeek / 5);
+                const actualHolidays = fullTimeHolidays * (daysPerWeek / 5);
                 const netWorkingDays = actualWorkDays - actualHolidays;
                 
                 rawData.push({
@@ -344,17 +344,17 @@ date: 2025-08-06
                 });
             }
             
-            // Now calculate MNO for each step
+            // Now calculate MNO for each step (marginal rate between consecutive steps)
             for (let i = 1; i <= 20; i++) {
                 const current = rawData[i];
                 const previous = rawData[i-1];
                 
-                // Calculate Δ NO and additional working days
+                // Calculate Δ NO and additional working days for this step
                 const noSippDeltaNO = current.noSippNet - previous.noSippNet;
                 const maxDeltaNO = current.maxNet - previous.maxNet;
                 const additionalWorkingDays = current.netWorkingDays - previous.netWorkingDays;
                 
-                // Calculate MNO = Δ NO ÷ additional working days
+                // Calculate MNO = Δ NO ÷ additional working days for this step
                 const mnoNoSipp = additionalWorkingDays > 0 ? noSippDeltaNO / additionalWorkingDays : 0;
                 const mnoMax = additionalWorkingDays > 0 ? maxDeltaNO / additionalWorkingDays : 0;
                 
