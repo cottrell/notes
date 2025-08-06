@@ -685,27 +685,27 @@ date: 2025-08-06
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px; border: 1px solid #ddd;">
                     <thead>
                         <tr style="background: #f8f9fa;">
-                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">%</th>
-                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Gross (£k)</th>
-                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Work Days</th>
-                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Holidays</th>
-                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px;">Net Work Days</th>
-                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #ffe6e6;">No SIPP (£0)</th>
-                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #e6ffe6;">Max SIPP</th>
+                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px; text-align: center;">%</th>
+                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px; text-align: center;">Gross (£k)</th>
+                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px; text-align: center;">Work Days</th>
+                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px; text-align: center;">Holidays</th>
+                            <th rowspan="2" style="border: 1px solid #ddd; padding: 3px; text-align: center;">Net Work Days</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #ffe6e6; text-align: center;">No SIPP (£0)</th>
+                            <th colspan="6" style="border: 1px solid #ddd; padding: 3px; background: #e6ffe6; text-align: center;">Max SIPP</th>
                         </tr>
                         <tr style="background: #f8f9fa; font-size: 9px;">
-                            <th style="border: 1px solid #ddd; padding: 2px;">SIPP (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">Tax (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">NI (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">NO (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">Δ NO (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold;">MNO (£)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">SIPP (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">Tax (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">NI (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">NO (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px;">Δ NO (£k)</th>
-                            <th style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold;">MNO (£)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">SIPP (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">Tax (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">NI (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">NO (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">Δ NO (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold; text-align: center;">MNO (£)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">SIPP (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">Tax (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">NI (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">NO (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; text-align: center;">Δ NO (£k)</th>
+                            <th style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold; text-align: center;">MNO (£)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -714,23 +714,23 @@ date: 2025-08-06
             breakdownData.forEach(row => {
                 tableHTML += `
                     <tr style="font-size: 9px;">
-                        <td style="border: 1px solid #ddd; padding: 2px; font-weight: bold;">${row.percentage}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.grossIncome / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${row.workDays.toFixed(1)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${row.holidays.toFixed(1)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${row.netWorkingDays.toFixed(1)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.noSippContrib / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.noSippTax / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.noSippNI / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.noSippNet / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.noSippDeltaNO / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold;">${Math.round(row.noSippMNO)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.maxSipp / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.maxTax / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.maxNI / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.maxNet / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px;">${Math.round(row.maxDeltaNO / 1000)}</td>
-                        <td style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold;">${Math.round(row.maxMNO)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; font-weight: bold; text-align: center;">${row.percentage}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.grossIncome / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${row.workDays.toFixed(1)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${row.holidays.toFixed(1)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${row.netWorkingDays.toFixed(1)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.noSippContrib / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.noSippTax / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.noSippNI / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.noSippNet / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.noSippDeltaNO / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; background: #ffcccc; font-weight: bold; text-align: right;">${Math.round(row.noSippMNO)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.maxSipp / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.maxTax / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.maxNI / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.maxNet / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; text-align: right;">${Math.round(row.maxDeltaNO / 1000)}</td>
+                        <td style="border: 1px solid #ddd; padding: 2px; background: #ccffcc; font-weight: bold; text-align: right;">${Math.round(row.maxMNO)}</td>
                     </tr>
                 `;
             });
