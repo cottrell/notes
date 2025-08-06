@@ -22,7 +22,7 @@ date: 2025-08-06
             color: #333;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -205,6 +205,10 @@ date: 2025-08-06
             <h3>Net Income After Tax</h3>
             <div id="netIncomeChart" class="chart-wrapper"></div>
         </div>
+        <div class="chart">
+            <h3>Net Income Rate per Working Day</h3>
+            <div id="netIncomeRateChart" class="chart-wrapper"></div>
+        </div>
     </div>
 
     <div class="summary-table">
@@ -342,7 +346,7 @@ date: 2025-08-06
             return (higher.total - current.total) / increment;
         }
 
-        let marginalChart, netIncomeChart;
+        let marginalChart, netIncomeChart, netIncomeRateChart;
 
         function updateCalculations() {
             const grossIncome = parseInt(document.getElementById('grossIncome').value) || 0;
@@ -408,6 +412,7 @@ date: 2025-08-06
             
             updateMarginalChart(incomes, marginalRates);
             updateNetIncomeChart(incomes, netIncomesNoPension, netIncomesMaxPension);
+            updateNetIncomeRateChart();
         }
 
         function updateMarginalChart(incomes, marginalRates) {
@@ -525,6 +530,108 @@ date: 2025-08-06
             netIncomeChart.setOption(option);
         }
 
+        function updateNetIncomeRateChart() {
+            const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
+            const workingDaysPerYear = 365 - 104 - 28; // 365 days - weekends - holidays = 233 working days
+            
+            const partTimeData = [];
+            const noPensionRates = [];
+            const maxPensionRates = [];
+            
+            // Calculate for 1, 2, 3, 4, 5 days per week (20%, 40%, 60%, 80%, 100%)
+            for (let daysPerWeek = 1; daysPerWeek <= 5; daysPerWeek++) {
+                const percentFullTime = (daysPerWeek / 5) * 100;
+                const actualIncome = fullTimeIncome * (daysPerWeek / 5);
+                const actualWorkingDays = workingDaysPerYear * (daysPerWeek / 5);
+                
+                // No pension scenario
+                const noPensionCalc = calculateTotalTax(actualIncome, 0);
+                const noPensionRatePerDay = noPensionCalc.netIncome / actualWorkingDays;
+                
+                // Max pension scenario (include SIPP contribution as net income)
+                const maxPensionContrib = calculateMaxPensionContribution(actualIncome);
+                const maxPensionCalc = calculateTotalTax(actualIncome, maxPensionContrib);
+                const maxPensionNetIncluding = maxPensionCalc.netIncome + maxPensionContrib;
+                const maxPensionRatePerDay = maxPensionNetIncluding / actualWorkingDays;
+                
+                partTimeData.push(percentFullTime);
+                noPensionRates.push(noPensionRatePerDay);
+                maxPensionRates.push(maxPensionRatePerDay);
+            }
+            
+            const chartDom = document.getElementById('netIncomeRateChart');
+            if (!netIncomeRateChart) {
+                netIncomeRateChart = echarts.init(chartDom);
+            }
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const percent = params[0].axisValue;
+                        let result = `Working ${percent}% of full time<br>`;
+                        params.forEach(param => {
+                            result += `${param.seriesName}: £${param.value.toFixed(0)} per day<br>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['No Pension', 'Max SIPP Contribution'],
+                    bottom: 5
+                },
+                xAxis: {
+                    type: 'category',
+                    data: partTimeData.map(p => `${p}%`),
+                    name: '% of Full Time'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Net Income per Working Day (£)',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return `£${value.toFixed(0)}`;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: 'No Pension',
+                        data: noPensionRates,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#3498db' },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: 'Peak Rate'}
+                            ]
+                        }
+                    },
+                    {
+                        name: 'Max SIPP Contribution',
+                        data: maxPensionRates,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#2ecc71' },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: 'Peak Rate'}
+                            ]
+                        }
+                    }
+                ],
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                }
+            };
+            
+            netIncomeRateChart.setOption(option);
+        }
+
         document.getElementById('pensionScenario').addEventListener('change', function() {
             const customPension = document.getElementById('customPension');
             if (this.value === 'custom') {
@@ -541,6 +648,7 @@ date: 2025-08-06
         window.addEventListener('resize', function() {
             if (marginalChart) marginalChart.resize();
             if (netIncomeChart) netIncomeChart.resize();
+            if (netIncomeRateChart) netIncomeRateChart.resize();
         });
     </script>
 </body>
