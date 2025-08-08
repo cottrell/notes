@@ -319,16 +319,21 @@ date: 2025-08-08
             return Math.max(0, qualifyingEarnings * employerMinRate);
         }
 
-        function calculateMaxPensionContribution(grossIncome, carryoverAllowance = 0) {
-            let allowance = taxData2025.pension.annualAllowance + carryoverAllowance;
+        function calculateMaxPensionContribution(grossIncome, employerPension, carryoverAllowance = 0) {
+            let annualAllowance = taxData2025.pension.annualAllowance;
 
-            if (grossIncome > taxData2025.pension.taperedAllowanceStart) {
-                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) *
+            // "Adjusted Income" is (very roughly) gross salary + employer pension contributions.
+            const adjustedIncome = grossIncome + employerPension;
+
+            if (adjustedIncome > taxData2025.pension.taperedAllowanceStart) {
+                const reduction = (adjustedIncome - taxData2025.pension.taperedAllowanceStart) *
                                  taxData2025.pension.taperedRate;
-                allowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, allowance - reduction);
+                annualAllowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, taxData2025.pension.annualAllowance - reduction);
             }
 
-            return Math.min(allowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
+            const totalAllowance = annualAllowance + carryoverAllowance;
+
+            return Math.min(totalAllowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
         }
 
         function calculateTotalTax(grossIncome, pensionContribution = 0) {
@@ -388,7 +393,7 @@ date: 2025-08-08
                 const noEmpPensionOutcome = noEmpPensionCalc.netIncome + noEmpPensionTotalPension;
                 
                 // Scenario 2: Maximum Employee Pension
-                const maxAllowanceTotal = calculateMaxPensionContribution(grossSalary, carryoverSipp);
+                const maxAllowanceTotal = calculateMaxPensionContribution(grossSalary, minEmployerPension, carryoverSipp);
                 const maxEmployeePension = Math.max(0, maxAllowanceTotal - minEmployerPension);
                 const maxEmpPensionCalc = calculateTotalTax(grossSalary, maxEmployeePension);
                 const maxEmpPensionTotalPension = minEmployerPension + maxEmployeePension;
