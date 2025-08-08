@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "ROI, Income Tax and MEE"
+title: "Marginal Efficiency"
 description: "Calculate the marginal net-to-gross ratio: how much worker net outcome you deliver per £1 of total employer expenditure (including employer NI)."
 excerpt: "Understanding employer compensation efficiency through marginal net-to-gross ratios across different spending levels."
 tags: [UK, tax, employer, efficiency, marginal-cost, SIPP, 2025-26]
@@ -20,7 +20,7 @@ date: 2025-08-08
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marginal Net-to-Gross</title>
+    <title>Marginal Efficiency</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
 
@@ -139,11 +139,19 @@ date: 2025-08-08
 <body>
     <h1>Net-to-Gross</h1>
 
-    Consider spending associated with employing one human in the UK.
+    <p>Channeling <a href="https://taxpolicy.org.uk/about/" target="_blank" style="color: #3498db;">Dan Niedle at Tax
+    Policy Associates</a>, let's try to understand the marginal throughput of payments for labour and the impact of
+    Taxation. We will ignore a lot of complexities and wrongly treat pensions as savings.</p>
+
+    <p>
+        Consider spending associated with employing an individual in the UK. The amount an employee receives relative to
+        how much the company gives up is often called the <a
+        href="https://www.stafftax.co.uk/net-to-gross-salary-calculator">Net-to-Gross Ratio</a>.
+    </p>
 
     <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
-            <span style="color: #3498db;">Employee Net Outcome (NO)</span> = Take-Home Pay + Pension Contribution
+            <span style="color: #3498db;">Employee Net Outcome (NO)</span> = Net Income + Employee Pension
         </div>
         <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
             (what the worker actually receives: salary minus taxes plus pension)
@@ -161,23 +169,16 @@ date: 2025-08-08
 
     <div style="background: #e8f5e8; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
-            <span style="color: #27ae60;">Marginal Employment Efficiency (MEE)</span> = Δ NO / Δ EE
+            <span style="color: #27ae60;">Marginal Efficiency (ME)</span> = Δ NO / Δ EE
         </div>
         <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
             (how much extra net outcome the employee gets per additional £1 you spend)
         </div>
     </div>
 
-    <div style="background: #edf2ff; border: 2px solid #6366f1; border-radius: 8px; padding: 16px; margin: 20px 0;">
-        <strong>Assumptions:</strong> This model treats employee pension contributions as made via a payroll net pay arrangement.
-        That means pension contributions reduce Income Tax but do not reduce Employee NI. Employer NI is calculated on gross pay above the employer threshold.
-        Pension allowance taper and carry-forward are approximations based on gross income.
-    </div>
-
-
     <p>
-        What does the marginal net-to-gross ratio look like as we pay employees more through the year (the number of
-        hours worked is irrelevant)?
+        Marginal Efficiency (ME) is basically Marginal Net-to-Gross.  What does the ME look like as we pay employees
+        more through the year (the number of hours worked is irrelevant)?
     </p>
 
     <div class="calculator-container">
@@ -467,7 +468,7 @@ date: 2025-08-08
                     name: 'No Employee Pension',
                     data: marginalEfficienciesNoEmp,
                     type: 'line',
-                    step: 'end',
+                    step: 'start',
                     lineStyle: { width: 3 },
                     itemStyle: { color: '#e74c3c' },
                     markPoint: {
@@ -483,7 +484,7 @@ date: 2025-08-08
                     name: carryoverSipp > 0 ? `Max Employee Pension (+£${carryoverSipp.toLocaleString()} carryover)` : 'Max Employee Pension (£60k allowance)',
                     data: marginalEfficienciesMaxEmp,
                     type: 'line',
-                    step: 'end',
+                    step: 'start',
                     lineStyle: { width: 3 },
                     itemStyle: { color: '#2ecc71' },
                     markPoint: {
@@ -505,19 +506,19 @@ date: 2025-08-08
                 tooltip: {
                     trigger: 'axis',
                     formatter: function(params) {
-                        const costIndex = params[0].dataIndex;
-                        const cost = employerCosts[costIndex];
+                        const idx = params[0].dataIndex;
+                        const current = sharedData[idx];
+                        const prev = sharedData[Math.max(0, idx - 1)];
+                        const cost = employerCosts[idx];
                         let result = `Employer Expenditure: £${cost.toLocaleString()}<br>`;
+                        result += `Interval (Gross): £${(prev ? prev.grossSalary : 0).toLocaleString()} → £${current.grossSalary.toLocaleString()}<br>`;
                         params.forEach(param => {
-                            const dataPoint = sharedData[costIndex];
                             if (param.seriesName.includes('No Employee')) {
                                 result += `${param.seriesName}: ${param.value.toFixed(2)} per £1<br>`;
-                                result += `Gross Salary: £${dataPoint.grossSalary.toLocaleString()}<br>`;
-                                result += `Employee Net Outcome: £${Math.round(dataPoint.noEmpPensionOutcome).toLocaleString()}<br>`;
+                                result += `Net Outcome @ end: £${Math.round(current.noEmpPensionOutcome).toLocaleString()}<br>`;
                             } else {
                                 result += `${param.seriesName}: ${param.value.toFixed(2)} per £1<br>`;
-                                result += `Gross Salary: £${dataPoint.grossSalary.toLocaleString()}<br>`;
-                                result += `Employee Net Outcome: £${Math.round(dataPoint.maxEmpPensionOutcome).toLocaleString()}<br>`;
+                                result += `Net Outcome @ end: £${Math.round(current.maxEmpPensionOutcome).toLocaleString()}<br>`;
                             }
                         });
                         return result;
@@ -659,7 +660,7 @@ date: 2025-08-08
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Pension</th>
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Take-Home</th>
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Net Outcome</th>
-                            <th style="border: 1px solid #ddd; padding: 4px; background: #ffcccc; font-weight: bold; text-align: center;">MEE</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; background: #ffcccc; font-weight: bold; text-align: center;">ME</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -703,7 +704,7 @@ date: 2025-08-08
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Pension</th>
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Take-Home</th>
                             <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Net Outcome</th>
-                            <th style="border: 1px solid #ddd; padding: 4px; background: #ccffcc; font-weight: bold; text-align: center;">MEE</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; background: #ccffcc; font-weight: bold; text-align: center;">ME</th>
                         </tr>
                     </thead>
                     <tbody>
