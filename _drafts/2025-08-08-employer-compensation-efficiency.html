@@ -168,6 +168,12 @@ date: 2025-08-08
         </div>
     </div>
 
+    <div style="background: #edf2ff; border: 2px solid #6366f1; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <strong>Assumptions:</strong> This model treats employee pension contributions as made via a payroll net pay arrangement.
+        That means pension contributions reduce Income Tax but do not reduce Employee NI. Employer NI is calculated on gross pay above the employer threshold.
+        Pension allowance taper and carry-forward are approximations based on gross income.
+    </div>
+
 
     <p>
         What does the marginal net-to-gross ratio look like as we pay employees more through the year (the number of
@@ -217,12 +223,12 @@ date: 2025-08-08
             nationalInsurance: {
                 rates: [
                     { min: 0, max: 12570, rate: 0.00 },
-                    { min: 12570, max: 50284, rate: 0.08 },
-                    { min: 50284, max: Infinity, rate: 0.02 }
+                    { min: 12570, max: 50270, rate: 0.08 },
+                    { min: 50270, max: Infinity, rate: 0.02 }
                 ]
             },
             employerNI: {
-                threshold: 12570,
+                threshold: 9100,
                 rate: 0.138 // 13.8%
             },
             pension: {
@@ -245,23 +251,42 @@ date: 2025-08-08
         }
 
         function calculateIncomeTax(grossIncome, pensionContribution = 0) {
+            // Net pay arrangement: pension reduces taxable pay for Income Tax only
             const taxableIncome = Math.max(0, grossIncome - pensionContribution);
             const personalAllowance = calculatePersonalAllowance(taxableIncome);
             const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
 
+            // Compute bands relative to taxableAmount (after personal allowance)
+            const basicUpperAfterPA = Math.max(0, 50270 - personalAllowance);
+            const higherUpperAfterPA = Math.max(0, 125140 - personalAllowance);
+
+            let remaining = taxableAmount;
             let tax = 0;
-            for (const band of taxData2025.incomeTax.bands) {
-                if (taxableAmount > band.min) {
-                    const taxableInBand = Math.min(taxableAmount, band.max) - band.min;
-                    tax += taxableInBand * band.rate;
-                }
+
+            // Basic rate 20%
+            const basicPortion = Math.min(remaining, basicUpperAfterPA);
+            tax += basicPortion * 0.20;
+            remaining -= basicPortion;
+
+            // Higher rate 40%
+            if (remaining > 0) {
+                const higherBandWidth = Math.max(0, higherUpperAfterPA - basicUpperAfterPA);
+                const higherPortion = Math.min(remaining, higherBandWidth);
+                tax += higherPortion * 0.40;
+                remaining -= higherPortion;
+            }
+
+            // Additional rate 45%
+            if (remaining > 0) {
+                tax += remaining * 0.45;
             }
 
             return tax;
         }
 
         function calculateNationalInsurance(grossIncome, pensionContribution = 0) {
-            const niableIncome = Math.max(0, grossIncome - pensionContribution);
+            // NI is not reduced by employee pension under net pay arrangement
+            const niableIncome = Math.max(0, grossIncome);
             let ni = 0;
 
             for (const band of taxData2025.nationalInsurance.rates) {
