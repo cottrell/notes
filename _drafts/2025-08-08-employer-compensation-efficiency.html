@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Marginal Efficiency"
+title: "Marginal Net-to-Gross"
 description: "Calculate the marginal net-to-gross ratio: how much worker net outcome you deliver per £1 of total employer expenditure (including employer NI)."
 excerpt: "Understanding employer compensation efficiency through marginal net-to-gross ratios across different spending levels."
 tags: [UK, tax, employer, efficiency, marginal-cost, SIPP, 2025-26]
@@ -20,7 +20,7 @@ date: 2025-08-08
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marginal Efficiency</title>
+    <title>Marginal Net-to-Gross</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
 
@@ -169,16 +169,17 @@ date: 2025-08-08
 
     <div style="background: #e8f5e8; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
         <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
-            <span style="color: #27ae60;">Marginal Efficiency (ME)</span> = Δ NO / Δ EE
+            <span style="color: #27ae60;">Marginal Net-to-Gross</span> = Δ NO / Δ EE
         </div>
         <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
-            (how much extra net outcome the employee gets per additional £1 you spend)
+            (how much extra net outcome the employee gets for each additional £1 of total employer cost)
         </div>
     </div>
 
     <p>
-        Marginal Efficiency (ME) is basically Marginal Net-to-Gross.  What does the ME look like as we pay employees
-        more through the year (the number of hours worked is irrelevant)?
+        This ratio is the <strong>Marginal Net-to-Gross</strong>. It answers the question: for each additional pound an
+        employer spends, how much actually lands in the employee's pocket or pension? Let's see what this looks like as
+        we pay an employee more throughout the year.
     </p>
 
     <div class="calculator-container">
@@ -187,7 +188,7 @@ date: 2025-08-08
             <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
         </div>
 
-        <button onclick="updateChart()">Calculate Marginal Efficiency</button>
+        <button onclick="updateChart()">Recalculate & Update Chart</button>
     </div>
 
     <div class="examples-container">
