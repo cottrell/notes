@@ -256,21 +256,23 @@ date: 2025-08-08
             const personalAllowance = calculatePersonalAllowance(taxableIncome);
             const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
 
-            // Compute bands relative to taxableAmount (after personal allowance)
-            const basicUpperAfterPA = Math.max(0, 50270 - personalAllowance);
-            const higherUpperAfterPA = Math.max(0, 125140 - personalAllowance);
+            // Correct band widths relative to taxableAmount (after PA):
+            // - Basic rate limit is fixed at £37,700 of taxable income
+            // - Additional rate starts where total income hits £125,140 ⇒ on taxableAmount at (125,140 − PA)
+            const basicRateLimit = 37700;
+            const additionalThresholdTaxable = Math.max(0, 125140 - personalAllowance);
 
             let remaining = taxableAmount;
             let tax = 0;
 
             // Basic rate 20%
-            const basicPortion = Math.min(remaining, basicUpperAfterPA);
+            const basicPortion = Math.min(remaining, basicRateLimit);
             tax += basicPortion * 0.20;
             remaining -= basicPortion;
 
             // Higher rate 40%
             if (remaining > 0) {
-                const higherBandWidth = Math.max(0, higherUpperAfterPA - basicUpperAfterPA);
+                const higherBandWidth = Math.max(0, additionalThresholdTaxable - basicRateLimit);
                 const higherPortion = Math.min(remaining, higherBandWidth);
                 tax += higherPortion * 0.40;
                 remaining -= higherPortion;
