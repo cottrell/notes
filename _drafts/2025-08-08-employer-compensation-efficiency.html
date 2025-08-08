@@ -343,14 +343,34 @@ date: 2025-08-08
         let efficiencyChart;
         let sharedData = []; // Single source of truth for both chart and table
 
+        function generateSalaryLevels() {
+            const anchors = new Set([
+                0,
+                6240,   // AE lower band
+                9100,   // Employer NI threshold
+                12570,  // Personal allowance
+                50270,  // Basic/higher boundary and AE upper band
+                100000, // PA taper start
+                125140, // PA fully removed / additional rate
+                260000, // Pension taper start (adjusted income approx)
+                360000  // Pension allowance fully tapered
+            ]);
+
+            // Add regular 10k steps to 500k
+            for (let s = 0; s <= 500000; s += 10000) anchors.add(s);
+
+            // Convert to sorted array and drop anything < 0
+            const arr = Array.from(anchors).filter(x => x >= 0).sort((a, b) => a - b);
+
+            // Ensure we don't start at too low values for employer context
+            return arr;
+        }
+
         function calculateSharedData(carryoverSipp) {
             const data = [];
 
-            // Use standard gross salary levels from £20k to £500k
-            const salaryLevels = [];
-            for (let salary = 20000; salary <= 500000; salary += 6000) {
-                salaryLevels.push(salary);
-            }
+            // Use 10k steps enriched with key thresholds
+            const salaryLevels = generateSalaryLevels();
 
             salaryLevels.forEach((grossSalary, i) => {
                 // Calculate employer costs
@@ -549,10 +569,51 @@ date: 2025-08-08
         function generateBreakdownTable(carryoverSipp) {
             const breakdownData = [];
 
-            // Show every 10th data point to keep table manageable (given larger range)
-            for (let i = 0; i < sharedData.length; i += 10) {
-                const dataPoint = sharedData[i];
-                
+            // Build target gross salary points for the table
+            const targets = new Set([
+                6240,   // AE lower band
+                9100,   // Employer NI threshold
+                12570,  // Personal allowance
+                50270,  // Basic→Higher boundary & AE upper band
+                100000, // PA taper start
+                125140, // PA fully removed / additional rate
+                260000, // Pension taper start (approx)
+                360000  // Pension allowance minimum
+            ]);
+            // Add regular 20k steps for context
+            for (let s = 20000; s <= 500000; s += 20000) targets.add(s);
+
+            // For each target, find the closest sharedData point by grossSalary
+            const selected = [];
+            const usedIdx = new Set();
+            const arr = sharedData;
+            const arrLen = arr.length;
+
+            function findClosestIndex(target) {
+                let lo = 0, hi = arrLen - 1, bestIdx = 0, bestDiff = Infinity;
+                while (lo <= hi) {
+                    const mid = (lo + hi) >> 1;
+                    const val = arr[mid].grossSalary;
+                    const diff = Math.abs(val - target);
+                    if (diff < bestDiff) { bestDiff = diff; bestIdx = mid; }
+                    if (val === target) { return mid; }
+                    if (val < target) lo = mid + 1; else hi = mid - 1;
+                }
+                return bestIdx;
+            }
+
+            Array.from(targets).sort((a,b)=>a-b).forEach(t => {
+                const idx = findClosestIndex(t);
+                if (!usedIdx.has(idx)) {
+                    usedIdx.add(idx);
+                    selected.push(arr[idx]);
+                }
+            });
+
+            // Ensure uniqueness and order by total spend
+            selected.sort((a,b) => a.totalSpend - b.totalSpend);
+
+            selected.forEach(dataPoint => {
                 breakdownData.push({
                     employerCost: dataPoint.totalSpend,
                     
@@ -578,7 +639,7 @@ date: 2025-08-08
                     maxSippOutcome: dataPoint.maxEmpPensionOutcome,
                     maxSippMarginalEff: (dataPoint.marginalEfficiencyMaxEmp || 0)
                 });
-            }
+            });
 
             // Create separate tables for clarity
             let tableHTML = `
