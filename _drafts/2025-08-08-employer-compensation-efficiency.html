@@ -1,31 +1,31 @@
 ---
 layout: post
-title: "Employer Compensation Efficiency: Bidding on Net Outcomes"
-description: "From the employer's perspective: calculating the most cost-effective way to deliver a specific net outcome to workers, including optimal salary vs pension contribution mixes."
-excerpt: "How employers can optimize compensation structures to minimize cost while maximizing worker net outcomes, with marginal efficiency analysis and cost-per-outcome calculations."
-tags: [UK, tax, employer, compensation, efficiency, pension, marginal-cost]
+title: "ROI, Income Tax and MEE"
+description: "Calculate the marginal net-to-gross ratio: how much worker net outcome you deliver per £1 of total employer expenditure (including employer NI)."
+excerpt: "Understanding employer compensation efficiency through marginal net-to-gross ratios across different spending levels."
+tags: [UK, tax, employer, efficiency, marginal-cost, SIPP, 2025-26]
 categories: [vibecoding]
 date: 2025-08-08
 ---
+
+<div style="background: #fff5f5; border-left: 4px solid #e53e3e; padding: 12px; margin: 20px 0; border-radius: 4px;">
+    <strong>Disclaimer:</strong> <span style="color: #e53e3e;">
+        Nothing has been checked really. Could be quite wrong in the details.
+    </span>
+</div>
+
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employer Compensation Efficiency Calculator</title>
+    <title>Marginal Net-to-Gross</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
+
         h1, h2, h3 {
             color: #2c3e50;
-        }
-
-        .intro {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
-            border-left: 4px solid #3498db;
-            margin: 20px 0;
         }
 
         .calculator-container {
@@ -50,15 +50,16 @@ date: 2025-08-08
             min-width: 200px;
         }
 
-        input, select {
+        input {
             padding: 10px 15px;
             border: 2px solid #e1e8ed;
             border-radius: 6px;
             font-size: 16px;
             transition: border-color 0.3s;
+            width: 150px;
         }
 
-        input:focus, select:focus {
+        input:focus {
             outline: none;
             border-color: #3498db;
         }
@@ -80,62 +81,12 @@ date: 2025-08-08
             box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
         }
 
-        .results-container {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin: 20px 0;
-        }
-
-        .efficiency-breakdown {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .efficiency-card {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #e74c3c;
-            text-align: center;
-        }
-
-        .efficiency-card.best {
-            border-left-color: #27ae60;
-            background: #e8f5e8;
-        }
-
-        .efficiency-card h4 {
-            margin-top: 0;
-            color: #e74c3c;
-        }
-
-        .efficiency-card.best h4 {
-            color: #27ae60;
-        }
-
-        .efficiency-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2c3e50;
-            margin: 10px 0;
-        }
-
-        .charts-container {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-            margin: 30px 0;
-        }
-
         .chart {
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
+            margin: 30px 0;
         }
 
         .chart-wrapper {
@@ -143,73 +94,116 @@ date: 2025-08-08
             height: 500px;
         }
 
-        .insight-box {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
+        .examples-container {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 30px 0;
         }
 
-        .insight-box h4 {
-            color: #856404;
-            margin-top: 0;
+        .example-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
         }
 
+        .example-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .example-btn:hover {
+            background: #dee2e6;
+            transform: none;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            label {
+                min-width: unset;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Employer Compensation Efficiency Calculator</h1>
-    
-    <div class="intro">
-        <h3>The Employer's Perspective: Bidding on Net Outcomes</h3>
-        <p>As an employer, you're not just paying salaries—you're bidding on humans who will work for a specific <strong>net outcome per hour</strong>. Your goal is to deliver that net outcome as efficiently as possible.</p>
-        <p><strong>Net outcome</strong> includes both take-home pay and pension contributions (since pensions are deferred compensation). The question becomes: what's the most cost-effective way to structure compensation to deliver the worker's desired net outcome?</p>
-        <p>This calculator helps you find the optimal balance between salary and employer pension contributions to minimize your total cost while maximizing the worker's net outcome.</p>
+    <h1>Net-to-Gross</h1>
+
+    Consider spending associated with employing one human in the UK.
+
+    <div style="background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
+            <span style="color: #3498db;">Employee Net Outcome (NO)</span> = Take-Home Pay + Pension Contribution
+        </div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
+            (what the worker actually receives: salary minus taxes plus pension)
+        </div>
     </div>
+
+    <div style="background: #fff3e0; border: 2px solid #f39c12; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
+            <span style="color: #f39c12;">Employer Expenditure (EE)</span> = Gross Salary + Employer NI + Employer Pension
+        </div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
+            (your true cost including all employer contributions)
+        </div>
+    </div>
+
+    <div style="background: #e8f5e8; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        <div style="font-size: 18px; font-weight: bold; color: #2c3e50;">
+            <span style="color: #27ae60;">Marginal Employment Efficiency (MEE)</span> = Δ NO / Δ EE
+        </div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-top: 8px;">
+            (how much extra net outcome the employee gets per additional £1 you spend)
+        </div>
+    </div>
+
+
+    <p>
+        What does the marginal net-to-gross ratio look like as we pay employees more through the year (the number of
+        hours worked is irrelevant)?
+    </p>
 
     <div class="calculator-container">
-        <h2>Compensation Efficiency Calculator</h2>
-        
         <div class="input-group">
-            <label for="targetNetOutcome">Target Daily Net Outcome (£):</label>
-            <input type="number" id="targetNetOutcome" value="200" min="50" max="2000" step="10">
-            <small>Worker's desired net outcome (take-home + pension) per working day</small>
+            <label for="carryoverSipp">Carry-Over Pension Allowance (£):</label>
+            <input type="number" id="carryoverSipp" value="0" min="0" max="180000" step="1000">
         </div>
-        
-        <div class="input-group">
-            <label for="workingDaysPerYear">Working Days Per Year:</label>
-            <input type="number" id="workingDaysPerYear" value="230" min="150" max="260" step="5">
-        </div>
-        
-        <button onclick="calculateOptimalCompensation()">Find Optimal Compensation Mix</button>
+
+        <button onclick="updateChart()">Calculate Marginal Efficiency</button>
     </div>
 
-    <div id="results" class="results-container" style="display: none;">
-        <h2>Compensation Efficiency Analysis</h2>
-        <div id="efficiencyBreakdown"></div>
-        
-        <div class="insight-box" id="insights"></div>
+    <div class="examples-container">
+        <div class="example-buttons">
+            <button class="example-btn" onclick="setCarryoverExample(0)">£0 Carryover</button>
+            <button class="example-btn" onclick="setCarryoverExample(60000)">£60k Carryover</button>
+            <button class="example-btn" onclick="setCarryoverExample(120000)">£120k Carryover</button>
+            <button class="example-btn" onclick="setCarryoverExample(180000)">£180k Carryover</button>
+        </div>
     </div>
 
-    <div class="charts-container">
-        <div class="chart">
-            <h3>Marginal Efficiency: Worker Net Outcome per £1 Employer Spends</h3>
-            <div id="marginalEfficiencyChart" class="chart-wrapper"></div>
-        </div>
-        <div class="chart">
-            <h3>Total Employer Cost vs Worker Net Outcome</h3>
-            <div id="costOutcomeChart" class="chart-wrapper"></div>
-        </div>
-        <div class="chart">
-            <h3>Optimal Salary vs Pension Mix by Income Level</h3>
-            <div id="optimalMixChart" class="chart-wrapper"></div>
-        </div>
+    <div class="chart">
+        <h3>Marginal Net-to-Gross Ratio</h3>
+        <div id="efficiencyChart" class="chart-wrapper"></div>
+    </div>
+
+    <div id="breakdownTable" class="calculator-container" style="display: none;">
+        <h3>Employer Expenditure Efficiency Breakdown</h3>
+        <div id="tableContent"></div>
     </div>
 
     <script>
         const taxData2025 = {
-            year: "2025-26",
             incomeTax: {
                 personalAllowance: 12570,
                 personalAllowanceReductionStart: 100000,
@@ -221,12 +215,10 @@ date: 2025-08-08
                 ]
             },
             nationalInsurance: {
-                primaryThreshold: 12570,
-                upperEarningsLimit: 50284,
                 rates: [
-                    { min: 0, max: 12570, rate: 0.00, name: "Below Primary Threshold" },
-                    { min: 12570, max: 50284, rate: 0.08, name: "Main Rate" },
-                    { min: 50284, max: Infinity, rate: 0.02, name: "Upper Rate" }
+                    { min: 0, max: 12570, rate: 0.00 },
+                    { min: 12570, max: 50284, rate: 0.08 },
+                    { min: 50284, max: Infinity, rate: 0.02 }
                 ]
             },
             employerNI: {
@@ -246,8 +238,8 @@ date: 2025-08-08
             if (grossIncome <= taxData2025.incomeTax.personalAllowanceReductionStart) {
                 return taxData2025.incomeTax.personalAllowance;
             }
-            
-            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) * 
+
+            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) *
                              taxData2025.incomeTax.personalAllowanceReductionRate;
             return Math.max(0, taxData2025.incomeTax.personalAllowance - reduction);
         }
@@ -256,7 +248,7 @@ date: 2025-08-08
             const taxableIncome = Math.max(0, grossIncome - pensionContribution);
             const personalAllowance = calculatePersonalAllowance(taxableIncome);
             const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
-            
+
             let tax = 0;
             for (const band of taxData2025.incomeTax.bands) {
                 if (taxableAmount > band.min) {
@@ -264,427 +256,408 @@ date: 2025-08-08
                     tax += taxableInBand * band.rate;
                 }
             }
-            
+
             return tax;
         }
 
-        function calculateEmployeeNationalInsurance(grossIncome, pensionContribution = 0) {
+        function calculateNationalInsurance(grossIncome, pensionContribution = 0) {
             const niableIncome = Math.max(0, grossIncome - pensionContribution);
             let ni = 0;
-            
+
             for (const band of taxData2025.nationalInsurance.rates) {
                 if (niableIncome > band.min) {
                     const niableInBand = Math.min(niableIncome, band.max) - band.min;
                     ni += niableInBand * band.rate;
                 }
             }
-            
+
             return ni;
         }
 
-        function calculateEmployerNationalInsurance(grossIncome) {
+        function calculateEmployerNI(grossIncome) {
             if (grossIncome <= taxData2025.employerNI.threshold) return 0;
             return (grossIncome - taxData2025.employerNI.threshold) * taxData2025.employerNI.rate;
         }
 
-        function calculateMaxPensionContribution(grossIncome) {
-            let allowance = taxData2025.pension.annualAllowance;
+        function calculateMinimumEmployerPension(grossIncome) {
+            // Auto-enrollment: 3% of qualifying earnings (£6,240 to £50,270)
+            const qualifyingEarningsLower = 6240;
+            const qualifyingEarningsUpper = 50270;
+            const employerMinRate = 0.03;
             
+            if (grossIncome <= qualifyingEarningsLower) return 0;
+            
+            const qualifyingEarnings = Math.min(grossIncome, qualifyingEarningsUpper) - qualifyingEarningsLower;
+            return Math.max(0, qualifyingEarnings * employerMinRate);
+        }
+
+        function calculateMaxPensionContribution(grossIncome, carryoverAllowance = 0) {
+            let allowance = taxData2025.pension.annualAllowance + carryoverAllowance;
+
             if (grossIncome > taxData2025.pension.taperedAllowanceStart) {
-                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) * 
+                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) *
                                  taxData2025.pension.taperedRate;
                 allowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, allowance - reduction);
             }
-            
+
             return Math.min(allowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
         }
 
-        function calculateEmployerCostAndWorkerOutcome(grossSalary, employerPensionContrib = 0) {
-            const incomeTax = calculateIncomeTax(grossSalary, employerPensionContrib);
-            const employeeNI = calculateEmployeeNationalInsurance(grossSalary, employerPensionContrib);
-            const employerNI = calculateEmployerNationalInsurance(grossSalary);
-            
-            const netSalary = grossSalary - incomeTax - employeeNI - employerPensionContrib;
-            const workerNetOutcome = netSalary + employerPensionContrib; // Pension is part of net outcome
-            const totalEmployerCost = grossSalary + employerNI + employerPensionContrib;
-            
+        function calculateTotalTax(grossIncome, pensionContribution = 0) {
+            const incomeTax = calculateIncomeTax(grossIncome, pensionContribution);
+            const nationalInsurance = calculateNationalInsurance(grossIncome, pensionContribution);
+
             return {
-                grossSalary,
-                employerPensionContrib,
                 incomeTax,
-                employeeNI,
-                employerNI,
-                netSalary,
-                workerNetOutcome,
-                totalEmployerCost,
-                efficiencyRatio: workerNetOutcome / totalEmployerCost
+                nationalInsurance,
+                total: incomeTax + nationalInsurance,
+                netIncome: grossIncome - incomeTax - nationalInsurance - pensionContribution
             };
         }
 
-        function findOptimalCompensationForTarget(targetAnnualOutcome) {
-            let bestOption = null;
-            let bestEfficiency = 0;
-            
-            // Try different combinations of salary and employer pension contributions
-            for (let grossSalary = 15000; grossSalary <= 150000; grossSalary += 1000) {
-                const maxPension = Math.min(calculateMaxPensionContribution(grossSalary), 40000);
+        let efficiencyChart;
+        let sharedData = []; // Single source of truth for both chart and table
+
+        function calculateSharedData(carryoverSipp) {
+            const data = [];
+
+            // Use standard gross salary levels from £20k to £500k
+            const salaryLevels = [];
+            for (let salary = 20000; salary <= 500000; salary += 6000) {
+                salaryLevels.push(salary);
+            }
+
+            salaryLevels.forEach((grossSalary, i) => {
+                // Calculate employer costs
+                const employerNI = calculateEmployerNI(grossSalary);
+                const minEmployerPension = calculateMinimumEmployerPension(grossSalary);
+                const totalEmployerSpend = grossSalary + employerNI + minEmployerPension;
                 
-                for (let pensionContrib = 0; pensionContrib <= maxPension; pensionContrib += 1000) {
-                    const result = calculateEmployerCostAndWorkerOutcome(grossSalary, pensionContrib);
+                // Scenario 1: Minimum Employee Pension (£0)
+                const noEmpPension = 0;
+                const noEmpPensionCalc = calculateTotalTax(grossSalary, noEmpPension);
+                const noEmpPensionTotalPension = minEmployerPension + noEmpPension;
+                const noEmpPensionOutcome = noEmpPensionCalc.netIncome + noEmpPensionTotalPension;
+                
+                // Scenario 2: Maximum Employee Pension
+                const maxAllowanceTotal = calculateMaxPensionContribution(grossSalary, carryoverSipp);
+                const maxEmployeePension = Math.max(0, maxAllowanceTotal - minEmployerPension);
+                const maxEmpPensionCalc = calculateTotalTax(grossSalary, maxEmployeePension);
+                const maxEmpPensionTotalPension = minEmployerPension + maxEmployeePension;
+                const maxEmpPensionOutcome = maxEmpPensionCalc.netIncome + maxEmpPensionTotalPension;
+                
+                data.push({
+                    i: i,
+                    grossSalary: grossSalary,
+                    employerNI: employerNI,
+                    minEmployerPension: minEmployerPension,
+                    totalSpend: totalEmployerSpend,
                     
-                    // Check if this gets close to our target outcome (within £500)
-                    if (Math.abs(result.workerNetOutcome - targetAnnualOutcome) <= 500) {
-                        if (result.efficiencyRatio > bestEfficiency) {
-                            bestEfficiency = result.efficiencyRatio;
-                            bestOption = result;
+                    // No Employee Pension scenario
+                    noEmpPension: noEmpPension,
+                    noEmpPensionTax: noEmpPensionCalc.incomeTax,
+                    noEmpPensionNI: noEmpPensionCalc.nationalInsurance,
+                    noEmpPensionTakeHome: noEmpPensionCalc.netIncome,
+                    noEmpPensionOutcome: noEmpPensionOutcome,
+                    
+                    // Max Employee Pension scenario
+                    maxEmpPension: maxEmployeePension,
+                    maxEmpPensionTax: maxEmpPensionCalc.incomeTax,
+                    maxEmpPensionNI: maxEmpPensionCalc.nationalInsurance,
+                    maxEmpPensionTakeHome: maxEmpPensionCalc.netIncome,
+                    maxEmpPensionOutcome: maxEmpPensionOutcome
+                });
+            });
+
+            // Calculate marginal efficiency for each step
+            const processedData = [];
+            for (let i = 1; i < data.length; i++) {
+                const current = data[i];
+                const previous = data[i-1];
+                
+                const additionalSpend = current.totalSpend - previous.totalSpend;
+                
+                // Marginal efficiency for No Employee Pension scenario
+                const additionalOutcomeNoEmp = current.noEmpPensionOutcome - previous.noEmpPensionOutcome;
+                const marginalEfficiencyNoEmp = additionalSpend > 0 ? additionalOutcomeNoEmp / additionalSpend : 0;
+                
+                // Marginal efficiency for Max Employee Pension scenario
+                const additionalOutcomeMaxEmp = current.maxEmpPensionOutcome - previous.maxEmpPensionOutcome;
+                const marginalEfficiencyMaxEmp = additionalSpend > 0 ? additionalOutcomeMaxEmp / additionalSpend : 0;
+                
+                processedData.push({
+                    ...current,
+                    marginalEfficiencyNoEmp: marginalEfficiencyNoEmp,
+                    marginalEfficiencyMaxEmp: marginalEfficiencyMaxEmp
+                });
+            }
+
+            return processedData;
+        }
+
+        function updateChart() {
+            const carryoverSipp = parseInt(document.getElementById('carryoverSipp').value) || 0;
+
+            // Calculate shared data once
+            sharedData = calculateSharedData(carryoverSipp);
+            console.log('SharedData sample:', sharedData.slice(0, 3)); // Debug
+
+            // Extract chart data from shared data
+            const employerCosts = sharedData.map(d => d.totalSpend);
+            const marginalEfficienciesNoEmp = sharedData.map(d => (d.marginalEfficiencyNoEmp || 0)); // Keep as decimal
+            const marginalEfficienciesMaxEmp = sharedData.map(d => (d.marginalEfficiencyMaxEmp || 0)); // Keep as decimal
+
+            console.log('Marginal efficiencies NoEmp:', marginalEfficienciesNoEmp.slice(0, 5)); // Debug
+            console.log('Marginal efficiencies MaxEmp:', marginalEfficienciesMaxEmp.slice(0, 5)); // Debug
+
+            const chartDom = document.getElementById('efficiencyChart');
+            if (!efficiencyChart) {
+                efficiencyChart = echarts.init(chartDom);
+            }
+
+            const series = [
+                {
+                    name: 'No Employee Pension',
+                    data: marginalEfficienciesNoEmp,
+                    type: 'line',
+                    step: 'end',
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#e74c3c' },
+                    markPoint: {
+                        data: [{ type: 'max', name: 'Peak Efficiency' }],
+                        label: {
+                            formatter: function(param) {
+                                return param.value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                {
+                    name: carryoverSipp > 0 ? `Max Employee Pension (+£${carryoverSipp.toLocaleString()} carryover)` : 'Max Employee Pension (£60k allowance)',
+                    data: marginalEfficienciesMaxEmp,
+                    type: 'line',
+                    step: 'end',
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#2ecc71' },
+                    markPoint: {
+                        data: [{ type: 'max', name: 'Peak Efficiency' }],
+                        label: {
+                            formatter: function(param) {
+                                return param.value.toFixed(2);
+                            }
                         }
                     }
                 }
-            }
-            
-            return bestOption;
-        }
+            ];
 
-        function calculateMarginalEfficiency(grossSalary, employerPensionContrib = 0) {
-            const increment = 100; // £100 increment
-            const current = calculateEmployerCostAndWorkerOutcome(grossSalary, employerPensionContrib);
-            
-            // Calculate efficiency of additional £100 in salary
-            const salaryIncrement = calculateEmployerCostAndWorkerOutcome(grossSalary + increment, employerPensionContrib);
-            const salaryEfficiency = (salaryIncrement.workerNetOutcome - current.workerNetOutcome) / 
-                                   (salaryIncrement.totalEmployerCost - current.totalEmployerCost);
-            
-            // Calculate efficiency of additional £100 in pension (if allowance permits)
-            const maxPension = calculateMaxPensionContribution(grossSalary);
-            let pensionEfficiency = 0;
-            if (employerPensionContrib + increment <= maxPension) {
-                const pensionIncrement = calculateEmployerCostAndWorkerOutcome(grossSalary, employerPensionContrib + increment);
-                pensionEfficiency = (pensionIncrement.workerNetOutcome - current.workerNetOutcome) / 
-                                  (pensionIncrement.totalEmployerCost - current.totalEmployerCost);
-            }
-            
-            return {
-                salaryEfficiency,
-                pensionEfficiency,
-                bestMarginalChoice: pensionEfficiency > salaryEfficiency ? 'pension' : 'salary'
-            };
-        }
-
-        let marginalEfficiencyChart, costOutcomeChart, optimalMixChart;
-
-        function calculateOptimalCompensation() {
-            const targetDaily = parseFloat(document.getElementById('targetNetOutcome').value) || 200;
-            const workingDays = parseInt(document.getElementById('workingDaysPerYear').value) || 230;
-            const targetAnnual = targetDaily * workingDays;
-            
-            document.getElementById('results').style.display = 'block';
-            
-            // Find optimal compensation mix
-            const optimal = findOptimalCompensationForTarget(targetAnnual);
-            
-            if (!optimal) {
-                document.getElementById('efficiencyBreakdown').innerHTML = 
-                    '<p>No suitable compensation structure found for the target outcome.</p>';
-                return;
-            }
-            
-            // Compare with salary-only and pension-heavy alternatives
-            const salaryOnly = calculateEmployerCostAndWorkerOutcome(targetAnnual + optimal.incomeTax + optimal.employeeNI + optimal.employerPensionContrib, 0);
-            const maxPensionContrib = Math.min(calculateMaxPensionContribution(optimal.grossSalary), 40000);
-            const pensionHeavy = calculateEmployerCostAndWorkerOutcome(optimal.grossSalary - maxPensionContrib + optimal.employerPensionContrib, maxPensionContrib);
-            
-            const breakdown = document.getElementById('efficiencyBreakdown');
-            breakdown.innerHTML = `
-                <div class="efficiency-breakdown">
-                    <div class="efficiency-card">
-                        <h4>Salary Only</h4>
-                        <div class="efficiency-value">${(salaryOnly.efficiencyRatio * 100).toFixed(1)}%</div>
-                        <p><strong>Employer Cost:</strong> £${salaryOnly.totalEmployerCost.toLocaleString()}</p>
-                        <p><strong>Worker Outcome:</strong> £${salaryOnly.workerNetOutcome.toLocaleString()}</p>
-                        <p><strong>Daily Rate:</strong> £${(salaryOnly.workerNetOutcome / workingDays).toFixed(0)}</p>
-                    </div>
-                    <div class="efficiency-card best">
-                        <h4>Optimal Mix ⭐</h4>
-                        <div class="efficiency-value">${(optimal.efficiencyRatio * 100).toFixed(1)}%</div>
-                        <p><strong>Employer Cost:</strong> £${optimal.totalEmployerCost.toLocaleString()}</p>
-                        <p><strong>Worker Outcome:</strong> £${optimal.workerNetOutcome.toLocaleString()}</p>
-                        <p><strong>Daily Rate:</strong> £${(optimal.workerNetOutcome / workingDays).toFixed(0)}</p>
-                        <p><strong>Split:</strong> £${optimal.grossSalary.toLocaleString()} salary + £${optimal.employerPensionContrib.toLocaleString()} pension</p>
-                    </div>
-                    <div class="efficiency-card">
-                        <h4>Pension Heavy</h4>
-                        <div class="efficiency-value">${(pensionHeavy.efficiencyRatio * 100).toFixed(1)}%</div>
-                        <p><strong>Employer Cost:</strong> £${pensionHeavy.totalEmployerCost.toLocaleString()}</p>
-                        <p><strong>Worker Outcome:</strong> £${pensionHeavy.workerNetOutcome.toLocaleString()}</p>
-                        <p><strong>Daily Rate:</strong> £${(pensionHeavy.workerNetOutcome / workingDays).toFixed(0)}</p>
-                    </div>
-                </div>
-            `;
-            
-            const savings = salaryOnly.totalEmployerCost - optimal.totalEmployerCost;
-            const savingsPercent = (savings / salaryOnly.totalEmployerCost) * 100;
-            
-            document.getElementById('insights').innerHTML = `
-                <h4>💡 Key Insights</h4>
-                <p><strong>Efficiency Gain:</strong> The optimal compensation structure delivers ${(optimal.efficiencyRatio * 100).toFixed(1)}% efficiency compared to ${(salaryOnly.efficiencyRatio * 100).toFixed(1)}% for salary-only.</p>
-                <p><strong>Cost Savings:</strong> You save £${savings.toLocaleString()} (${savingsPercent.toFixed(1)}%) annually by optimizing the salary/pension mix.</p>
-                <p><strong>Marginal Strategy:</strong> At this income level, additional compensation should be delivered via ${calculateMarginalEfficiency(optimal.grossSalary, optimal.employerPensionContrib).bestMarginalChoice}.</p>
-            `;
-            
-            generateCharts(targetDaily, workingDays);
-        }
-
-        function generateCharts(targetDaily, workingDays) {
-            updateMarginalEfficiencyChart();
-            updateCostOutcomeChart();
-            updateOptimalMixChart();
-        }
-
-        function updateMarginalEfficiencyChart() {
-            const incomes = [];
-            const salaryEfficiencies = [];
-            const pensionEfficiencies = [];
-            
-            for (let income = 20000; income <= 150000; income += 5000) {
-                incomes.push(income);
-                
-                const marginalEff = calculateMarginalEfficiency(income, 0);
-                salaryEfficiencies.push(marginalEff.salaryEfficiency * 100);
-                pensionEfficiencies.push(marginalEff.pensionEfficiency * 100);
-            }
-            
-            const chartDom = document.getElementById('marginalEfficiencyChart');
-            if (!marginalEfficiencyChart) {
-                marginalEfficiencyChart = echarts.init(chartDom);
-            }
-            
             const option = {
+                title: {
+                    text: carryoverSipp > 0 ? `With £${carryoverSipp.toLocaleString()} Pension Carryover` : 'Standard £60k Pension Allowance',
+                    left: 'center'
+                },
                 tooltip: {
                     trigger: 'axis',
                     formatter: function(params) {
-                        const income = params[0].axisValue;
-                        let result = `Income: £${income.toLocaleString()}<br>`;
+                        const costIndex = params[0].dataIndex;
+                        const cost = employerCosts[costIndex];
+                        let result = `Employer Expenditure: £${cost.toLocaleString()}<br>`;
                         params.forEach(param => {
-                            result += `${param.seriesName}: ${param.value.toFixed(1)}p per £1<br>`;
+                            const dataPoint = sharedData[costIndex];
+                            if (param.seriesName.includes('No Employee')) {
+                                result += `${param.seriesName}: ${param.value.toFixed(2)} per £1<br>`;
+                                result += `Gross Salary: £${dataPoint.grossSalary.toLocaleString()}<br>`;
+                                result += `Employee Net Outcome: £${Math.round(dataPoint.noEmpPensionOutcome).toLocaleString()}<br>`;
+                            } else {
+                                result += `${param.seriesName}: ${param.value.toFixed(2)} per £1<br>`;
+                                result += `Gross Salary: £${dataPoint.grossSalary.toLocaleString()}<br>`;
+                                result += `Employee Net Outcome: £${Math.round(dataPoint.maxEmpPensionOutcome).toLocaleString()}<br>`;
+                            }
                         });
                         return result;
                     }
                 },
                 legend: {
-                    data: ['Additional Salary', 'Additional Pension'],
+                    data: series.map(s => s.name),
                     bottom: 5
                 },
                 xAxis: {
                     type: 'category',
-                    data: incomes.map(i => i.toLocaleString()),
+                    data: employerCosts.map(c => c.toLocaleString()),
                     axisLabel: {
                         formatter: function(value, index) {
-                            return index % 5 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
+                            return index % 10 === 0 ? `£${(employerCosts[index] / 1000).toFixed(0)}k` : '';
                         }
-                    }
+                    },
+                    name: 'Total Employer Expenditure',
+                    nameLocation: 'center',
+                    nameGap: 30
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'Worker Outcome (pence per £1 employer spends)',
-                    min: 40,
-                    max: 100
-                },
-                series: [
-                    {
-                        name: 'Additional Salary',
-                        data: salaryEfficiencies,
-                        type: 'line',
-                        step: 'end',
-                        lineStyle: { width: 3 },
-                        itemStyle: { color: '#e74c3c' }
-                    },
-                    {
-                        name: 'Additional Pension',
-                        data: pensionEfficiencies,
-                        type: 'line',
-                        step: 'end',
-                        lineStyle: { width: 3 },
-                        itemStyle: { color: '#2ecc71' }
+                    name: 'Marginal Net-to-Gross Ratio',
+                    nameRotate: 90,
+                    nameLocation: 'middle',
+                    nameGap: 50,
+                    min: 0,
+                    max: 1,
+                    axisLabel: {
+                        formatter: function(value) {
+                            return value.toFixed(2);
+                        }
                     }
-                ],
+                },
+                series: series,
                 grid: {
                     left: '15%',
                     right: '10%',
-                    bottom: '15%'
+                    bottom: '15%',
+                    top: '15%'
                 }
             };
-            
-            marginalEfficiencyChart.setOption(option);
+
+            efficiencyChart.setOption(option);
+
+            // Generate breakdown table
+            generateBreakdownTable(carryoverSipp);
         }
 
-        function updateCostOutcomeChart() {
-            const employerCosts = [];
-            const workerOutcomes = [];
-            const incomes = [];
-            
-            for (let income = 20000; income <= 120000; income += 2000) {
-                const result = calculateEmployerCostAndWorkerOutcome(income, 0);
-                incomes.push(income);
-                employerCosts.push(result.totalEmployerCost);
-                workerOutcomes.push(result.workerNetOutcome);
+        function generateBreakdownTable(carryoverSipp) {
+            const breakdownData = [];
+
+            // Show every 10th data point to keep table manageable (given larger range)
+            for (let i = 0; i < sharedData.length; i += 10) {
+                const dataPoint = sharedData[i];
+                
+                breakdownData.push({
+                    employerCost: dataPoint.totalSpend,
+                    
+                    // No Employee Pension scenario
+                    noSippSalary: dataPoint.grossSalary,
+                    noSippEmployerNI: dataPoint.employerNI,
+                    noSippEmployerPension: dataPoint.minEmployerPension,
+                    noSippEmployeePension: dataPoint.noEmpPension,
+                    noSippTax: dataPoint.noEmpPensionTax,
+                    noSippNI: dataPoint.noEmpPensionNI,
+                    noSippTakeHome: dataPoint.noEmpPensionTakeHome,
+                    noSippOutcome: dataPoint.noEmpPensionOutcome,
+                    noSippMarginalEff: (dataPoint.marginalEfficiencyNoEmp || 0),
+                    
+                    // Max Employee Pension scenario
+                    maxSippSalary: dataPoint.grossSalary,
+                    maxSippEmployerNI: dataPoint.employerNI,
+                    maxSippEmployerPension: dataPoint.minEmployerPension,
+                    maxSippEmployeePension: dataPoint.maxEmpPension,
+                    maxSippTax: dataPoint.maxEmpPensionTax,
+                    maxSippNI: dataPoint.maxEmpPensionNI,
+                    maxSippTakeHome: dataPoint.maxEmpPensionTakeHome,
+                    maxSippOutcome: dataPoint.maxEmpPensionOutcome,
+                    maxSippMarginalEff: (dataPoint.marginalEfficiencyMaxEmp || 0)
+                });
             }
-            
-            const chartDom = document.getElementById('costOutcomeChart');
-            if (!costOutcomeChart) {
-                costOutcomeChart = echarts.init(chartDom);
-            }
-            
-            const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: function(params) {
-                        const index = params[0].dataIndex;
-                        const income = incomes[index];
-                        const cost = params[0].value;
-                        const outcome = params[1].value;
-                        const efficiency = (outcome / cost * 100).toFixed(1);
-                        return `Gross Salary: £${income.toLocaleString()}<br>` +
-                               `Employer Cost: £${cost.toLocaleString()}<br>` +
-                               `Worker Outcome: £${outcome.toLocaleString()}<br>` +
-                               `Efficiency: ${efficiency}%`;
-                    }
-                },
-                legend: {
-                    data: ['Employer Total Cost', 'Worker Net Outcome'],
-                    bottom: 5
-                },
-                xAxis: {
-                    type: 'category',
-                    data: incomes.map(i => i.toLocaleString()),
-                    axisLabel: {
-                        formatter: function(value, index) {
-                            return index % 10 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
-                        }
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Amount (£)',
-                    axisLabel: {
-                        formatter: function(value) {
-                            return `£${(value / 1000).toFixed(0)}k`;
-                        }
-                    }
-                },
-                series: [
-                    {
-                        name: 'Employer Total Cost',
-                        data: employerCosts,
-                        type: 'line',
-                        smooth: true,
-                        lineStyle: { width: 3 },
-                        itemStyle: { color: '#e74c3c' }
-                    },
-                    {
-                        name: 'Worker Net Outcome',
-                        data: workerOutcomes,
-                        type: 'line',
-                        smooth: true,
-                        lineStyle: { width: 3 },
-                        itemStyle: { color: '#3498db' }
-                    }
-                ],
-                grid: {
-                    left: '10%',
-                    right: '10%',
-                    bottom: '15%'
-                }
-            };
-            
-            costOutcomeChart.setOption(option);
+
+            // Create separate tables for clarity
+            let tableHTML = `
+                <h4 style="color: #e74c3c; margin-top: 30px;">Minimum Employee Pension (0)</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #ddd; margin-bottom: 30px;">
+                    <thead>
+                        <tr style="background: #ffe6e6;">
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Spend</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Gross Salary</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employer NI</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employer Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Income Tax</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employee NI</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employee Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Take-Home</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Net Outcome</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; background: #ffcccc; font-weight: bold; text-align: center;">MEE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // First table: No Employee Pension
+            breakdownData.forEach(row => {
+                const totalPension = row.noSippEmployerPension + row.noSippEmployeePension;
+                tableHTML += `
+                    <tr style="font-size: 10px;">
+                        <td style="border: 1px solid #ddd; padding: 3px; font-weight: bold; text-align: center;">${Math.round(row.employerCost).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippSalary).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippEmployerNI).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippEmployerPension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippTax).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippNI).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippEmployeePension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right; font-weight: bold; color: #27ae60;">${Math.round(totalPension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.noSippTakeHome).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right; font-weight: bold;">${Math.round(row.noSippOutcome).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; background: #ffcccc; font-weight: bold; text-align: right;">${row.noSippMarginalEff.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>
+                
+                <h4 style="color: #27ae60; margin-top: 30px;">Maximum Employee Pension Contributions</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #ddd;">
+                    <thead>
+                        <tr style="background: #e6ffe6;">
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Spend</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Gross Salary</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employer NI</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employer Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Income Tax</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employee NI</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Employee Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Total Pension</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Take-Home</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; text-align: center;">Net Outcome</th>
+                            <th style="border: 1px solid #ddd; padding: 4px; background: #ccffcc; font-weight: bold; text-align: center;">MEE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // Second table: Max Employee Pension
+            breakdownData.forEach(row => {
+                const totalPension = row.maxSippEmployerPension + row.maxSippEmployeePension;
+                tableHTML += `
+                    <tr style="font-size: 10px;">
+                        <td style="border: 1px solid #ddd; padding: 3px; font-weight: bold; text-align: center;">${Math.round(row.employerCost).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippSalary).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippEmployerNI).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippEmployerPension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippTax).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippNI).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippEmployeePension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right; font-weight: bold; color: #27ae60;">${Math.round(totalPension).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right;">${Math.round(row.maxSippTakeHome).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; text-align: right; font-weight: bold;">${Math.round(row.maxSippOutcome).toLocaleString()}</td>
+                        <td style="border: 1px solid #ddd; padding: 3px; background: #ccffcc; font-weight: bold; text-align: right;">${row.maxSippMarginalEff.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+
+            document.getElementById('tableContent').innerHTML = tableHTML;
+            document.getElementById('breakdownTable').style.display = 'block';
         }
 
-        function updateOptimalMixChart() {
-            const incomes = [];
-            const optimalSalaryProp = [];
-            const optimalPensionProp = [];
-            
-            for (let targetOutcome = 30000; targetOutcome <= 100000; targetOutcome += 2000) {
-                const optimal = findOptimalCompensationForTarget(targetOutcome);
-                if (optimal) {
-                    incomes.push(targetOutcome);
-                    const totalComp = optimal.grossSalary + optimal.employerPensionContrib;
-                    optimalSalaryProp.push((optimal.grossSalary / totalComp) * 100);
-                    optimalPensionProp.push((optimal.employerPensionContrib / totalComp) * 100);
-                }
-            }
-            
-            const chartDom = document.getElementById('optimalMixChart');
-            if (!optimalMixChart) {
-                optimalMixChart = echarts.init(chartDom);
-            }
-            
-            const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: function(params) {
-                        const index = params[0].dataIndex;
-                        const outcome = incomes[index];
-                        return `Target Outcome: £${outcome.toLocaleString()}<br>` +
-                               `Optimal Salary: ${params[0].value.toFixed(1)}%<br>` +
-                               `Optimal Pension: ${params[1].value.toFixed(1)}%`;
-                    }
-                },
-                legend: {
-                    data: ['Salary %', 'Pension %'],
-                    bottom: 5
-                },
-                xAxis: {
-                    type: 'category',
-                    data: incomes.map(i => i.toLocaleString()),
-                    axisLabel: {
-                        formatter: function(value, index) {
-                            return index % 5 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
-                        }
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    name: 'Percentage of Total Compensation',
-                    min: 0,
-                    max: 100
-                },
-                series: [
-                    {
-                        name: 'Salary %',
-                        data: optimalSalaryProp,
-                        type: 'area',
-                        stack: 'total',
-                        itemStyle: { color: '#3498db' },
-                        areaStyle: { opacity: 0.8 }
-                    },
-                    {
-                        name: 'Pension %',
-                        data: optimalPensionProp,
-                        type: 'area',
-                        stack: 'total',
-                        itemStyle: { color: '#2ecc71' },
-                        areaStyle: { opacity: 0.8 }
-                    }
-                ],
-                grid: {
-                    left: '10%',
-                    right: '10%',
-                    bottom: '15%'
-                }
-            };
-            
-            optimalMixChart.setOption(option);
+        function setCarryoverExample(carryover) {
+            document.getElementById('carryoverSipp').value = carryover;
+            updateChart();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            calculateOptimalCompensation();
+            updateChart();
         });
 
         window.addEventListener('resize', function() {
-            if (marginalEfficiencyChart) marginalEfficiencyChart.resize();
-            if (costOutcomeChart) costOutcomeChart.resize();
-            if (optimalMixChart) optimalMixChart.resize();
+            if (efficiencyChart) efficiencyChart.resize();
         });
     </script>
 </body>
