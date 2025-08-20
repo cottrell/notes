@@ -1,6 +1,7 @@
 ---
 layout: post
-title: 2025-08-20_bitter-lesson
+title: The Bitter Lesson
+date: 2025-08-20
 ---
 
 What was the bitter lesson actually about? It was originally about features and
