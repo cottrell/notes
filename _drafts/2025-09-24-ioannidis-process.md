@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "The Ionnidis Process"
+title: "The Ioannidis Process"
 date: 2025-09-24
 categories: [research, methodology, bias]
 mermaid: true
@@ -10,7 +10,7 @@ mermaid: true
 
 See [Why Most Published Research Findings Are False](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124#s2).
 
-Ionnidis et al discuss how different kinds of errors and bias ("interests")
+Ioannidis et al discuss how different kinds of errors and bias ("interests")
 propagate without really offering a simple version of the
 mechanics of the publication generation process.
 
