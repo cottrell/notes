@@ -223,6 +223,14 @@
                     <li><strong>Continuous Decay:</strong> After you make a choice, it becomes your "Active Bonus". This bonus continuously adds to your wealth, but its effect decays over time. The faster you make your next decision, the more value you extract.</li>
                     <li><strong>Multiple Operations:</strong> The game presents different types of choices: simple addition (+), simple multiplication (x), and choices based on probability distributions (PDF/CDF), which add an element of uncertainty.</li>
                 </ul>
+                <h3>Math (SDE View)</h3>
+                <p>Let <code>W(t)</code> be wealth and <code>f(t) ∈ [0,1]</code> be the decay envelope over each 3s window (starts at 1 and linearly drops to 0). The game runs at 10 ticks per second with step <code>dt = 0.1</code>s.</p>
+                <ul>
+                    <li><strong>Multiplicative choices (x, PDF/CDF, Empirical):</strong> per tick we sample a per-second gross return <code>M_t</code> and apply log-scaling: <code>d ln W = f(t) · r_t · dt</code>, where <code>r_t = ln M_t</code>. Implementation: <code>W ← W · exp(r_t · f(t) · dt)</code>. (We clamp <code>r_t</code> to a small band to avoid spikes.)</li>
+                    <li><strong>Additive choices (+):</strong> with per-second rate <code>a</code>, we update: <code>dW = f(t) · a · dt</code>. Implementation: <code>W ← W + a · f(t) · dt</code>.</li>
+                    <li><strong>Empirical stock:</strong> the per-second log-returns <code>r</code> are drawn from a GBM-like simulator calibrated to annual <code>μ ∈ [5%,9%]</code>, <code>σ ∈ [12%,20%]</code>, then sampled i.i.d. each tick to generate <code>M_t = exp(r)</code>.</li>
+                </ul>
+                <p>Approximation: for multiplicative choices you can view this as <code>d ln W = f(t)(μ dt + σ dB_t)</code> with <code>μ,σ</code> set by the chosen distribution (or empirically estimated), and the decay <code>f(t)</code> tapering the effect over a window.</p>
                 <p>This version of the game was developed iteratively with a large language model.</p>
                 <button id="close-about-modal">Close</button>
             </div>
