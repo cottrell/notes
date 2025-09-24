@@ -29,6 +29,7 @@ graph LR
 
     D2 -->|Yes| W
 
+    I -.-> W
     I -.-> D1
     I -.-> D2
 
@@ -36,6 +37,7 @@ graph LR
     linkStyle 0 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 7 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 8 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 9 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
 
     %% Legend
     subgraph Legend[" "]
@@ -74,13 +76,15 @@ graph LR
     P --> C{Continue?}
     C -->|No| Stop[Stop]
 
+    I -.-> W
     I -.-> D
     I -.-> C
 
     %% Causal link styling
     linkStyle 0 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
-    linkStyle 5 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 6 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 7 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 8 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
 
     %% Styling
     classDef process fill:#e8f4f8
@@ -110,17 +114,21 @@ graph LR
     P2 --> C2{Continue?}
     C2 -->|Yes| More[...]
 
+    I -.-> W1
     I -.-> D1
     I -.-> C1
+    I -.-> W2
     I -.-> D2
     I -.-> C2
 
     %% Causal link styling
     linkStyle 0 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
-    linkStyle 8 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 9 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 10 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 11 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 12 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 13 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 14 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
 
     %% Styling
     classDef process fill:#e8f4f8
@@ -152,17 +160,21 @@ graph LR
     H2 --> C2{Continue?}
     C2 -->|No| Stop[Stop]
 
+    I -.-> W1
     I -.-> D1
     I -.-> C1
+    I -.-> W2
     I -.-> D2
     I -.-> C2
 
     %% Causal link styling
     linkStyle 0 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
-    linkStyle 8 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 9 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 10 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 11 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 12 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 13 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 14 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
 
     %% Styling
     classDef process fill:#e8f4f8
@@ -192,17 +204,21 @@ graph LR
     H --> C2{Continue?}
     C2 -->|No| Stop[Stop]
 
+    I -.-> W1
     I -.-> D1
     I -.-> C1
+    I -.-> W2
     I -.-> D2
     I -.-> C2
 
     %% Causal link styling
     linkStyle 0 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
-    linkStyle 9 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 10 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 11 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
     linkStyle 12 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 13 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 14 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
+    linkStyle 15 stroke:#ff9bb3,stroke-width:2px,stroke-dasharray: 5 5
 
     %% Styling
     classDef process fill:#e8f4f8
