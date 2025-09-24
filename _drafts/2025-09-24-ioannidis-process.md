@@ -8,7 +8,7 @@ mermaid: true
 
 # The Ioannidis Process
 
-See [Why Most Published Research Findings Are False](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124#s2).
+See the classic [Why Most Published Research Findings Are False](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124#s2).
 
 Ioannidis et al discuss how different kinds of errors and bias ("interests")
 propagate without really offering a simple version of the
