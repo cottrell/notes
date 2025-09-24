@@ -21,7 +21,7 @@ graph LR
     I[Incentives] -.-> T{Pick Topic}
     T --> W((Investigate))
     W --> D1{Publish?}
-    D1 -->|Yes| P((Broadcast))
+    D1 -->|Yes| P((Publish))
     D1 -->|No| H((Censor))
 
     P --> D2{Continue?}
@@ -70,7 +70,7 @@ graph LR
     I[Incentives] -.-> T{Pick Topic}
     T --> W((Investigate))
     W --> D{Publish?}
-    D -->|Yes| P((Broadcast))
+    D -->|Yes| P((Publish))
     P --> C{Continue?}
     C -->|No| Stop[Stop]
 
@@ -102,11 +102,11 @@ graph LR
     I[Incentives] -.-> T{Pick Topic}
     T --> W1((Investigate))
     W1 --> D1{Publish?}
-    D1 -->|Yes| P1((Broadcast))
+    D1 -->|Yes| P1((Publish))
     P1 --> C1{Continue?}
     C1 -->|Yes| W2((Investigate))
     W2 --> D2{Publish?}
-    D2 -->|Yes| P2((Broadcast))
+    D2 -->|Yes| P2((Publish))
     P2 --> C2{Continue?}
     C2 -->|Yes| More[...]
 
@@ -184,7 +184,7 @@ graph LR
     I[Incentives] -.-> T{Pick Topic}
     T --> W1((Investigate))
     W1 --> D1{Publish?}
-    D1 -->|Yes| P((Broadcast))
+    D1 -->|Yes| P((Publish))
     P --> C1{Continue?}
     C1 -->|Yes| W2((Investigate))
     W2 --> D2{Publish?}
@@ -220,3 +220,66 @@ graph LR
 *Cherry-picking: publish positive, hide negative follow-up*
 
 
+## Publish/Censor process on a Random Walk
+
+The layout of the unrolled graphs imply a typical kind of view of a corrupted
+publication process where the publish/censor rate is "spatially" dependent.
+
+<div style="text-align: center;">
+<svg width="600" height="300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background regions -->
+  <rect x="0" y="0" width="600" height="150" fill="#ffcccc" opacity="0.7"/>
+  <rect x="0" y="150" width="600" height="150" fill="#ccffcc" opacity="0.7"/>
+
+  <!-- Dividing line -->
+  <line x1="0" y1="150" x2="600" y2="150" stroke="#333" stroke-width="2" stroke-dasharray="5,5"/>
+
+  <!-- Labels -->
+  <text x="10" y="30" font-family="Arial" font-size="18" fill="#900">Results I do not like</text>
+  <text x="10" y="280" font-family="Arial" font-size="18" fill="#090">Results I like</text>
+
+  <!-- Random walk path -->
+  <polyline points="0,150 15,155 25,142 35,148 45,135 55,140 70,125 85,130 95,120 105,135 115,140 125,128 140,145 155,125 165,138 175,145 185,130 195,115 205,108 215,125 225,135 235,148 245,142 260,155 275,148 285,160 295,172 305,165 315,175 325,168 340,185 350,180 365,190 375,185 385,170 395,165 405,158 415,145 425,140 435,155 445,162 460,175 470,188 485,195 495,180 505,175 520,188 530,192 545,185 555,190 570,185 580,178 590,182 600,185" 
+            fill="none" stroke="#333" stroke-width="2"/>
+
+  <!-- Censor events (red circles in upper region) -->
+  <circle cx="45" cy="135" r="5" fill="#dc3545"/>
+  <circle cx="70" cy="125" r="5" fill="#dc3545"/>
+  <circle cx="95" cy="120" r="5" fill="#dc3545"/>
+  <circle cx="125" cy="128" r="5" fill="#dc3545"/>
+  <circle cx="155" cy="125" r="5" fill="#dc3545"/>
+  <circle cx="185" cy="130" r="5" fill="#dc3545"/>
+  <circle cx="195" cy="115" r="5" fill="#dc3545"/>
+  <circle cx="205" cy="108" r="5" fill="#dc3545"/>
+  <circle cx="415" cy="145" r="5" fill="#dc3545"/>
+  <circle cx="425" cy="140" r="5" fill="#dc3545"/>
+
+  <!-- Publish events (green circles in lower region) -->
+  <circle cx="285" cy="160" r="5" fill="#28a745"/>
+  <circle cx="295" cy="172" r="5" fill="#28a745"/>
+  <circle cx="315" cy="175" r="5" fill="#28a745"/>
+  <circle cx="340" cy="185" r="5" fill="#28a745"/>
+  <circle cx="350" cy="180" r="5" fill="#28a745"/>
+  <circle cx="365" cy="190" r="5" fill="#28a745"/>
+  <circle cx="460" cy="175" r="5" fill="#28a745"/>
+  <circle cx="470" cy="188" r="5" fill="#28a745"/>
+  <circle cx="485" cy="195" r="5" fill="#28a745"/>
+  <circle cx="520" cy="188" r="5" fill="#28a745"/>
+  <circle cx="530" cy="192" r="5" fill="#28a745"/>
+  <circle cx="555" cy="190" r="5" fill="#28a745"/>
+  <circle cx="590" cy="182" r="5" fill="#28a745"/>
+  <circle cx="600" cy="185" r="5" fill="#28a745"/>
+
+  <!-- Legend -->
+  <g transform="translate(450,20)">
+    <circle cx="0" cy="0" r="4" fill="#dc3545"/>
+    <text x="10" y="4" font-family="Arial" font-size="10">Censor</text>
+    <circle cx="0" cy="20" r="4" fill="#28a745"/>
+    <text x="10" y="24" font-family="Arial" font-size="10">Publish</text>
+  </g>
+</svg>
+</div>
+
+The random walk shows how outcomes drifting between regions favorable and
+unfavorable to the researcher. It is trivial to sample publication points in a
+way that favours the incentives of the researcher.
