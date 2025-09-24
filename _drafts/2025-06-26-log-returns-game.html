@@ -36,18 +36,40 @@
             text-align: center;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         h1 {
             color: var(--primary-color);
             margin-top: 0;
+            margin-bottom: 10px;
         }
         .game-stats {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-size: 1.2em;
         }
         .stat-value { font-weight: bold; }
+        #active-bonus-container {
+            background: #222;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.1em;
+        }
+        #active-bonus-text {
+            color: var(--secondary-color);
+            animation: pulse-text 1.5s infinite;
+        }
+        @keyframes pulse-text {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
         .choice-container {
             display: flex;
             justify-content: space-between;
@@ -63,27 +85,15 @@
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: 2px solid transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
         }
         .choice-option:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        .choice-option.selected {
-            transform: scale(1.05);
-        }
-        .choice-option.correct {
-            animation: flash-green 0.5s ease;
-        }
-        .choice-option.incorrect {
-            animation: flash-red 0.5s ease;
-        }
-        @keyframes flash-green {
-            0%, 100% { box-shadow: 0 0 15px var(--success-color); }
-            50% { box-shadow: 0 0 30px var(--success-color); }
-        }
-        @keyframes flash-red {
-            0%, 100% { box-shadow: 0 0 15px var(--error-color); }
-            50% { box-shadow: 0 0 30px var(--error-color); }
         }
         .distribution-chart {
             width: 100%;
@@ -91,26 +101,15 @@
             border-radius: 5px;
             background: #222;
         }
+        .choice-text-display {
+            font-size: 3em;
+            font-weight: bold;
+        }
         .expected-log-return {
             font-size: 1.1em;
             font-weight: bold;
             margin-top: 10px;
         }
-        .feedback-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 4em;
-            font-weight: bold;
-            color: white;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-        .feedback-overlay.show { opacity: 1; }
         #wealth-chart-container {
             flex-grow: 1;
             margin-top: 10px;
@@ -121,7 +120,7 @@
             min-height: 150px;
             border-radius: 5px;
         }
-        .game-over-screen {
+        .game-over-screen, .start-screen {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -141,250 +140,359 @@
         button:hover {
             background: var(--secondary-color);
         }
+        #about-button {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--container-bg);
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            text-align: left;
+            border: 1px solid var(--neutral-color);
+        }
+        .modal-content h2 { color: var(--primary-color); }
+        .modal-content ul { padding-left: 20px; }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="game-container" id="game-container">
-        <h1>Log Returns Arcade</h1>
-        <div class="game-stats">
-            <div>Round: <span id="round-counter" class="stat-value">1</span></div>
-            <div>Score: <span id="score" class="stat-value">0</span></div>
-            <div>Streak: <span id="streak" class="stat-value">0</span></div>
-        </div>
-        <div class="choice-container" id="choice-container">
-            <div class="choice-option" id="option-a">
-                <canvas class="distribution-chart" id="chart-a"></canvas>
-                <div class="expected-log-return" id="log-return-a"></div>
-            </div>
-            <div class="choice-option" id="option-b">
-                <canvas class="distribution-chart" id="chart-b"></canvas>
-                <div class="expected-log-return" id="log-return-b"></div>
-            </div>
-            <div class="feedback-overlay" id="feedback-overlay"></div>
-        </div>
-        <div id="wealth-chart-container">
-            <canvas id="wealth-chart"></canvas>
+        <div class="start-screen" id="start-screen">
+            <h1>Log Returns Arcade</h1>
+            <p>Choose the option with the highest expected return to maximize your wealth.</p>
+            <p>Your previous choice continuously adds to your wealth, but its effect decays over time. Choose quickly!</p>
+            <br>
+            <button id="start-button">Start Game</button>
         </div>
     </div>
 
     <script>
+    const GAME_HTML = `
+        <button id="about-button">About</button>
+        <h1>Log Returns Arcade</h1>
+        <div class="game-stats">
+            <div>Round: <span id="round-counter" class="stat-value">1</span></div>
+            <div>Wealth: <span id="wealth-display" class="stat-value">0</span></div>
+            <div>Streak: <span id="streak" class="stat-value">0</span></div>
+        </div>
+        <div id="active-bonus-container">Active Bonus: <span id="active-bonus-text">None</span></div>
+        <div class="choice-container" id="choice-container">
+            <div class="choice-option" id="option-a">
+                <canvas class="distribution-chart" id="chart-a"></canvas>
+                <div class="choice-text-display" id="text-display-a"></div>
+                <div class="expected-log-return" id="log-return-a"></div>
+            </div>
+            <div class="choice-option" id="option-b">
+                <canvas class="distribution-chart" id="chart-b"></canvas>
+                <div class="choice-text-display" id="text-display-b"></div>
+                <div class="expected-log-return" id="log-return-b"></div>
+            </div>
+        </div>
+        <div id="wealth-chart-container">
+            <canvas id="wealth-chart"></canvas>
+        </div>
+        <div id="about-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h2>About Log Returns Arcade</h2>
+                <p>This game is an experiment in building intuition about expected log returns and compounding. The goal is to maximize your wealth by always choosing the option with the highest expected return.</p>
+                <h3>Core Mechanics</h3>
+                <ul>
+                    <li><strong>Continuous Decay:</strong> After you make a choice, it becomes your "Active Bonus". This bonus continuously adds to your wealth, but its effect decays over time. The faster you make your next decision, the more value you extract.</li>
+                    <li><strong>Multiple Operations:</strong> The game presents different types of choices: simple addition (+), simple multiplication (x), and choices based on probability distributions (PDF/CDF), which add an element of uncertainty.</li>
+                </ul>
+                <p>This version of the game was developed iteratively with a large language model.</p>
+                <button id="close-about-modal">Close</button>
+            </div>
+        </div>
+    `;
+
+    class ChoiceFactory {
+        generateMultiplierPdfChoice() {
+            const n = 100, xMin = Math.log(0.1), xMax = Math.log(4);
+            const xs = Array.from({ length: n }, (_, i) => xMin + (i / (n - 1)) * (xMax - xMin));
+            const mode = Math.floor(Math.random() * (n * 0.6)) + n * 0.2;
+            let ps = Array.from({ length: n }, (_, i) => {
+                const dist = Math.abs(i - mode);
+                return Math.exp(-Math.pow(dist / (n * 0.1), 2));
+            });
+            const area = ps.reduce((sum, p, i) => {
+                if (i === 0) return 0;
+                return sum + (p + ps[i-1]) / 2 * (xs[i] - xs[i-1]);
+            }, 0);
+            const normPs = ps.map(p => p / area);
+            let expectedLogReturn = null;
+            const computeLogReturn = () => {
+                if (expectedLogReturn !== null) return expectedLogReturn;
+                expectedLogReturn = normPs.reduce((sum, p, i) => {
+                    if (i === 0) return 0;
+                    return sum + ((xs[i]*p + xs[i-1]*normPs[i-1])/2) * (xs[i] - xs[i-1]);
+                }, 0);
+                return expectedLogReturn;
+            };
+            const cdfPoints = [];
+            let acc = 0;
+            for(let i=0; i<normPs.length; i++) {
+                acc += normPs[i] * (i > 0 ? (xs[i] - xs[i-1]) : 0);
+                cdfPoints.push(acc);
+            }
+            const maxCdf = cdfPoints.at(-1);
+            const normalizedCdf = cdfPoints.map(p => p / maxCdf);
+            const sample = () => Math.exp(xs[normalizedCdf.findIndex(p => Math.random() <= p)]);
+            return { type: 'pdf', xs, ps: normPs, cdf: normalizedCdf, sample, getExpectedLogReturn: computeLogReturn, display: 'PDF' };
+        }
+        generateAdditionChoice() {
+            const value = Math.floor(Math.random() * 100) + 1;
+            return { type: 'add', value, display: `+${value}`, sample: () => value, getExpectedLogReturn: () => value };
+        }
+        generateSimpleMultiplierChoice() {
+            const value = 1 + Math.random();
+            return { type: 'multiply', value, display: `x${value.toFixed(2)}`, sample: () => value, getExpectedLogReturn: () => Math.log(value) };
+        }
+    }
+
     class Game {
         constructor() {
+            this.gameContainer = document.getElementById('game-container');
+            this.startButton = document.getElementById('start-button');
+            this.choiceFactory = new ChoiceFactory();
+            this.wealthChartInstance = null;
+            this.state = {};
+            this.loadDependencies();
+        }
+
+        loadDependencies() {
+            this.startButton.disabled = true;
+            this.startButton.textContent = 'Loading...';
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+            script.onload = () => {
+                this.startButton.disabled = false;
+                this.startButton.textContent = 'Start Game';
+                this.startButton.addEventListener('click', () => this.startGame());
+            };
+            document.head.appendChild(script);
+        }
+
+        startGame() {
+            this.gameContainer.innerHTML = GAME_HTML;
             this.DOM = {
-                gameContainer: document.getElementById('game-container'),
                 roundCounter: document.getElementById('round-counter'),
-                score: document.getElementById('score'),
+                wealthDisplay: document.getElementById('wealth-display'),
                 streak: document.getElementById('streak'),
-                choiceContainer: document.getElementById('choice-container'),
+                activeBonusText: document.getElementById('active-bonus-text'),
                 optionA: document.getElementById('option-a'),
                 optionB: document.getElementById('option-b'),
                 chartA: document.getElementById('chart-a'),
                 chartB: document.getElementById('chart-b'),
+                textDisplayA: document.getElementById('text-display-a'),
+                textDisplayB: document.getElementById('text-display-b'),
                 logReturnA: document.getElementById('log-return-a'),
                 logReturnB: document.getElementById('log-return-b'),
-                feedbackOverlay: document.getElementById('feedback-overlay'),
                 wealthChart: document.getElementById('wealth-chart'),
+                aboutButton: document.getElementById('about-button'),
+                aboutModal: document.getElementById('about-modal'),
+                closeAboutModal: document.getElementById('close-about-modal'),
             };
-
-            this.config = {
-                maxRounds: 20,
-            };
-
-            this.wealthChartInstance = null;
             this.resetGame();
-            this.addEventListeners();
         }
 
         resetGame() {
+            if (this.state.decayInterval) clearInterval(this.state.decayInterval);
             this.state = {
                 round: 1,
-                score: 0,
                 streak: 0,
-                isRoundActive: false,
-                currentDistributions: null,
+                currentChoices: null,
+                activeDecayChoice: null,
+                decayInterval: null,
+                decayStartTime: 0,
                 playerWealth: [1],
                 optimalWealth: [1],
                 worstWealth: [1],
             };
-
-            if (this.wealthChartInstance) {
-                this.wealthChartInstance.destroy();
-            }
+            if (this.wealthChartInstance) this.wealthChartInstance.destroy();
             this.setupWealthChart();
-            this.startRound();
+            this.addEventListeners();
+            this.nextRound();
         }
 
         addEventListeners() {
             this.DOM.optionA.addEventListener('click', () => this.selectOption('A'));
             this.DOM.optionB.addEventListener('click', () => this.selectOption('B'));
             document.addEventListener('keydown', (e) => {
-                if (!this.state.isRoundActive) return;
                 if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') this.selectOption('A');
                 if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') this.selectOption('B');
             });
+            this.DOM.aboutButton.addEventListener('click', () => this.DOM.aboutModal.classList.remove('hidden'));
+            this.DOM.closeAboutModal.addEventListener('click', () => this.DOM.aboutModal.classList.add('hidden'));
         }
 
-        startRound() {
-            if (this.state.round > this.config.maxRounds) {
+        nextRound() {
+            if (this.state.round > 20) {
                 this.endGame();
                 return;
             }
-
-            this.state.isRoundActive = true;
-            this.state.currentDistributions = this.generateDistributions();
-            
-            this.DOM.optionA.classList.remove('correct', 'incorrect', 'selected');
-            this.DOM.optionB.classList.remove('correct', 'incorrect', 'selected');
-            this.DOM.feedbackOverlay.classList.remove('show');
-
+            this.state.currentChoices = this.generateChoicePair();
             this.updateDisplay();
         }
 
-        selectOption(option) {
-            if (!this.state.isRoundActive) return;
-            this.DOM[`option${option}`].classList.add('selected');
-            this.handleChoice(option);
+        selectOption(optionKey) {
+            if (!this.state.currentChoices) return;
+            if (this.state.decayInterval) clearInterval(this.state.decayInterval);
+
+            this.updateWealth(true);
+
+            const selectedChoice = this.state.currentChoices[optionKey];
+            this.state.activeDecayChoice = selectedChoice;
+            this.DOM.activeBonusText.textContent = selectedChoice.display;
+
+            const { A, B } = this.state.currentChoices;
+            const optimalChoiceKey = A.getExpectedLogReturn() > B.getExpectedLogReturn() ? 'A' : 'B';
+            const worstChoiceKey = optimalChoiceKey === 'A' ? 'B' : 'A';
+            if (optionKey === optimalChoiceKey) this.state.streak++;
+            else this.state.streak = 0;
+
+            const choiceType = selectedChoice.type;
+            const optimalReturn = this.state.currentChoices[optimalChoiceKey].sample();
+            const worstReturn = this.state.currentChoices[worstChoiceKey].sample();
+            this.state.optimalWealth.push(this.updateWealthValue(this.state.optimalWealth.at(-1), optimalReturn, choiceType));
+            this.state.worstWealth.push(this.updateWealthValue(this.state.worstWealth.at(-1), worstReturn, choiceType));
+
+            this.state.playerWealth.push(this.state.playerWealth.at(-1));
+
+            this.state.round++;
+            this.startDecayProcess();
+            this.nextRound();
         }
 
-        handleChoice(selectedOption) {
-            this.state.isRoundActive = false;
+        updateWealthValue(base, returnValue, type) {
+            if (type === 'add') return base + returnValue;
+            return base * (returnValue || 1);
+        }
 
-            const { A, B } = this.state.currentDistributions;
-            const optimalChoice = A.getExpectedLogReturn() > B.getExpectedLogReturn() ? 'A' : 'B';
-            const worstChoice = optimalChoice === 'A' ? 'B' : 'A';
-            const isCorrect = selectedOption === optimalChoice;
+        startDecayProcess() {
+            if (!this.state.activeDecayChoice) return;
+            this.state.decayStartTime = Date.now();
+            this.state.decayInterval = setInterval(() => this.updateWealth(), 100);
+        }
 
-            if (isCorrect) {
-                this.state.score++;
-                this.state.streak++;
-                this.DOM.feedbackOverlay.textContent = '✓';
-                this.DOM.feedbackOverlay.style.color = 'var(--success-color)';
-            } else {
-                this.state.streak = 0;
-                this.DOM.feedbackOverlay.textContent = '✗';
-                this.DOM.feedbackOverlay.style.color = 'var(--error-color)';
+        updateWealth(isFinal = false) {
+            const elapsedTime = Date.now() - this.state.decayStartTime;
+            const decayRate = 3000; // ms
+            const decay = Math.max(0, 1 - (elapsedTime / decayRate));
+
+            const choice = this.state.activeDecayChoice;
+            if (!choice) return;
+
+            const rawSample = choice.sample();
+            let effectiveSample;
+
+            if (choice.type === 'add') {
+                effectiveSample = rawSample * decay * 0.1; // Scale down additive bonus
+            } else { // multiply, pdf, cdf
+                effectiveSample = (rawSample - 1) * decay + 1;
             }
-            this.DOM.feedbackOverlay.classList.add('show');
             
-            const selectedDist = selectedOption ? this.state.currentDistributions[selectedOption] : null;
-            const optimalDist = this.state.currentDistributions[optimalChoice];
-            const worstDist = this.state.currentDistributions[worstChoice];
+            const lastIdx = this.state.playerWealth.length - 1;
+            this.state.playerWealth[lastIdx] = this.updateWealthValue(this.state.playerWealth[lastIdx], effectiveSample, choice.type);
 
-            const playerReturn = selectedDist ? selectedDist.sample() : 1; // Default to 1 if no choice
-            const optimalReturn = optimalDist.sample();
-            const worstReturn = worstDist.sample();
+            this.DOM.wealthDisplay.textContent = this.state.playerWealth.at(-1).toFixed(2);
+            this.wealthChartInstance.data.labels = Array.from({ length: this.state.playerWealth.length }, (_, i) => i);
+            this.wealthChartInstance.update('none');
 
-            this.state.playerWealth.push(this.state.playerWealth.at(-1) * playerReturn);
-            this.state.optimalWealth.push(this.state.optimalWealth.at(-1) * optimalReturn);
-            this.state.worstWealth.push(this.state.worstWealth.at(-1) * worstReturn);
-
-            this.DOM[`option${optimalChoice}`].classList.add('correct');
-            if (selectedOption && !isCorrect) {
-                this.DOM[`option${selectedOption}`].classList.add('incorrect');
+            if (isFinal) {
+                this.wealthChartInstance.update();
             }
-
-            this.updateWealthChart();
-            this.updateDisplay();
-
-            setTimeout(() => {
-                this.state.round++;
-                this.startRound();
-            }, 500);
         }
 
         updateDisplay() {
             this.DOM.roundCounter.textContent = this.state.round;
-            this.DOM.score.textContent = this.state.score;
+            this.DOM.wealthDisplay.textContent = this.state.playerWealth.at(-1).toFixed(2);
             this.DOM.streak.textContent = this.state.streak;
 
-            const { A, B } = this.state.currentDistributions;
-            this.DOM.logReturnA.textContent = `E[log(R)] = ${A.getExpectedLogReturn().toFixed(3)}`;
-            this.DOM.logReturnB.textContent = `E[log(R)] = ${B.getExpectedLogReturn().toFixed(3)}`;
-
-            this.drawDistribution(this.DOM.chartA, A);
-            this.drawDistribution(this.DOM.chartB, B);
-        }
-
-        generateDistributions() {
-            const distA = this.generateLogReturnPDF();
-            const distB = this.generateLogReturnPDF();
-            // Ensure they are not too similar
-            if (Math.abs(distA.getExpectedLogReturn() - distB.getExpectedLogReturn()) < 0.01) {
-                return this.generateDistributions();
-            }
-            return { A: distA, B: distB };
-        }
-
-        generateLogReturnPDF(n = 100, xMin = Math.log(0.1), xMax = Math.log(4)) {
-            const xs = Array.from({ length: n }, (_, i) => xMin + (i / (n - 1)) * (xMax - xMin));
-            const mode = Math.floor(Math.random() * (n * 0.6)) + n * 0.2; // Peak between 20% and 80%
-
-            let ps = Array.from({ length: n }, (_, i) => {
-                const dist = Math.abs(i - mode);
-                return Math.exp(-Math.pow(dist / (n * 0.1), 2));
-            });
-
-            const area = ps.reduce((sum, p, i) => {
-                if (i === 0) return 0;
-                const dx = xs[i] - xs[i-1];
-                return sum + (p + ps[i-1]) / 2 * dx;
-            }, 0);
+            if (!this.state.currentChoices) return;
+            const { A, B } = this.state.currentChoices;
             
-            const normPs = ps.map(p => p / area);
+            const updateOptionUI = (option, id) => {
+                const chartEl = this.DOM[`chart${id}`];
+                const textEl = this.DOM[`textDisplay${id}`];
+                const logReturnEl = this.DOM[`logReturn${id}`];
 
-            let expectedLogReturn = null;
-            const computeLogReturn = () => {
-                if (expectedLogReturn !== null) return expectedLogReturn;
-                expectedLogReturn = normPs.reduce((sum, p, i) => {
-                    if (i === 0) return 0;
-                    const dx = xs[i] - xs[i-1];
-                    const avg_x_p = (xs[i]*p + xs[i-1]*ps[i-1])/2;
-                    return sum + avg_x_p * dx;
-                }, 0);
-                return expectedLogReturn;
+                if (option.type === 'pdf' || option.type === 'cdf') {
+                    chartEl.classList.remove('hidden');
+                    textEl.classList.add('hidden');
+                    this.drawDistribution(chartEl, option);
+                    logReturnEl.textContent = `E[log(R)] = ${option.getExpectedLogReturn().toFixed(3)}`;
+                } else {
+                    chartEl.classList.add('hidden');
+                    textEl.classList.remove('hidden');
+                    textEl.textContent = option.display;
+                    logReturnEl.textContent = option.type === 'add' ? `Value: ${option.value}` : `E[log(R)] = ${option.getExpectedLogReturn().toFixed(3)}`;
+                }
             };
+            updateOptionUI(A, 'A');
+            updateOptionUI(B, 'B');
+        }
 
-            const cdf = normPs.map((p, i) => ({p: p * (i > 0 ? (xs[i] - xs[i-1]) : 0), x: xs[i]}));
-            let acc = 0;
-            for(let i=0; i<cdf.length; i++) { cdf[i].p = acc += cdf[i].p; }
-            const maxCdf = cdf.at(-1).p;
-
-            const sample = () => {
-                const u = Math.random() * maxCdf;
-                const sampleIdx = cdf.findIndex(val => u <= val.p);
-                return Math.exp(xs[sampleIdx]);
-            };
-
-            return { xs, ps: normPs, sample, getExpectedLogReturn: computeLogReturn };
+        generateChoicePair() {
+            const choiceTypes = ['pdf', 'add', 'multiply', 'cdf'];
+            const selectedType = choiceTypes[Math.floor(Math.random() * choiceTypes.length)];
+            let choiceA, choiceB;
+            if (selectedType === 'pdf' || selectedType === 'cdf') {
+                choiceA = this.choiceFactory.generateMultiplierPdfChoice();
+                choiceB = this.choiceFactory.generateMultiplierPdfChoice();
+                if (selectedType === 'cdf') {
+                    choiceA.type = 'cdf';
+                    choiceB.type = 'cdf';
+                }
+            } else if (selectedType === 'add') {
+                choiceA = this.choiceFactory.generateAdditionChoice();
+                choiceB = this.choiceFactory.generateAdditionChoice();
+            } else if (selectedType === 'multiply') {
+                choiceA = this.choiceFactory.generateSimpleMultiplierChoice();
+                choiceB = this.choiceFactory.generateSimpleMultiplierChoice();
+            }
+            if (choiceA.getExpectedLogReturn() === choiceB.getExpectedLogReturn()) return this.generateChoicePair();
+            return { A: choiceA, B: choiceB };
         }
 
         drawDistribution(canvas, distribution) {
             const ctx = canvas.getContext('2d');
             const { width, height } = canvas;
             ctx.clearRect(0, 0, width, height);
-
-            const { xs, ps } = distribution;
+            const { xs, ps, cdf, type } = distribution;
             const margin = { top: 10, right: 10, bottom: 20, left: 10 };
             const plotWidth = width - margin.left - margin.right;
             const plotHeight = height - margin.top - margin.bottom;
-
-            const maxPs = Math.max(...ps);
-            const minXs = xs[0];
-            const maxXs = xs.at(-1);
-
-            // Draw curve
+            const dataToDraw = type === 'cdf' ? cdf : ps;
+            const maxVal = type === 'cdf' ? 1 : Math.max(...ps);
+            const minXs = xs[0], maxXs = xs.at(-1);
             ctx.beginPath();
-            ctx.strokeStyle = 'var(--primary-color)';
+            ctx.strokeStyle = type === 'cdf' ? 'var(--secondary-color)' : 'var(--primary-color)';
             ctx.lineWidth = 2;
             for (let i = 0; i < xs.length; i++) {
                 const x = margin.left + ((xs[i] - minXs) / (maxXs - minXs)) * plotWidth;
-                const y = height - margin.bottom - (ps[i] / maxPs) * plotHeight;
+                const y = height - margin.bottom - (dataToDraw[i] / maxVal) * plotHeight;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
-
-            // Draw break-even line
             if (minXs < 0 && maxXs > 0) {
                 const breakEvenX = margin.left + (-minXs / (maxXs - minXs)) * plotWidth;
                 ctx.strokeStyle = 'var(--error-color)';
@@ -399,101 +507,48 @@
         }
 
         setupWealthChart() {
+            const labels = Array.from({ length: this.state.playerWealth.length }, (_, i) => i);
             const ctx = this.DOM.wealthChart.getContext('2d');
             this.wealthChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: [0],
+                    labels: labels,
                     datasets: [
-                        {
-                            label: 'Your Wealth',
-                            data: [1],
-                            borderColor: '#00aaff',
-                            tension: 0.1,
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'Optimal Wealth',
-                            data: [1],
-                            borderColor: '#00ff7f',
-                            tension: 0.1,
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'Worst Wealth',
-                            data: [1],
-                            borderColor: '#ff3366',
-                            tension: 0.1,
-                            pointRadius: 0,
-                        }
+                        { label: 'Your Wealth', data: this.state.playerWealth, borderColor: '#00aaff', tension: 0.1, pointRadius: 0 },
+                        { label: 'Optimal Wealth', data: this.state.optimalWealth, borderColor: '#00ff7f', tension: 0.1, pointRadius: 0 },
+                        { label: 'Worst Wealth', data: this.state.worstWealth, borderColor: '#ff3366', tension: 0.1, pointRadius: 0 },
                     ]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'logarithmic',
-                            ticks: { color: 'var(--text-color)' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        },
-                        x: {
-                            ticks: { color: 'var(--text-color)' },
-                            grid: { color: 'rgba(255,255,255,0.1)' }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: { color: 'var(--text-color)' }
-                        }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { type: 'logarithmic', ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } } },
+                    plugins: { legend: { labels: { color: 'var(--text-color)' } } }
                 }
             });
         }
 
-        updateWealthChart() {
-            const labels = Array.from({ length: this.state.playerWealth.length }, (_, i) => i);
-            this.wealthChartInstance.data.labels = labels;
-            this.wealthChartInstance.data.datasets[0].data = this.state.playerWealth;
-            this.wealthChartInstance.data.datasets[1].data = this.state.optimalWealth;
-            this.wealthChartInstance.data.datasets[2].data = this.state.worstWealth;
-            this.wealthChartInstance.update('none');
-        }
-
         endGame() {
-            const accuracy = (this.state.score / this.config.maxRounds * 100).toFixed(1);
+            if (this.state.decayInterval) clearInterval(this.state.decayInterval);
             const finalPlayerWealth = this.state.playerWealth.at(-1);
             const finalOptimalWealth = this.state.optimalWealth.at(-1);
             const finalWorstWealth = this.state.worstWealth.at(-1);
 
-            this.DOM.gameContainer.innerHTML = `
+            this.gameContainer.innerHTML = `
                 <div class="game-over-screen">
                     <h1>Game Over!</h1>
-                    <p>Final Score: ${this.state.score} / ${this.config.maxRounds} (${accuracy}%)</p>
-                    <h3>Final Wealth Multiplier:</h3>
-                    <p style="color: var(--primary-color);">Your Strategy: ${finalPlayerWealth.toFixed(2)}x</p>
-                    <p style="color: var(--success-color);">Optimal Strategy: ${finalOptimalWealth.toFixed(2)}x</p>
-                    <p style="color: var(--error-color);">Worst Strategy: ${finalWorstWealth.toFixed(2)}x</p>
-                    <p>You achieved ${(finalPlayerWealth / finalOptimalWealth * 100).toFixed(1)}% of the optimal wealth.</p>
+                    <h3>Final Wealth:</h3>
+                    <p style="color: #00aaff;">Your Strategy: ${finalPlayerWealth.toFixed(2)}</p>
+                    <p style="color: #00ff7f;">Optimal Strategy: ${finalOptimalWealth.toFixed(2)}</p>
+                    <p style="color: #ff3366;">Worst Strategy: ${finalWorstWealth.toFixed(2)}</p>
                     <br>
                     <button id="play-again">Play Again</button>
                 </div>
             `;
-            document.getElementById('play-again').addEventListener('click', () => {
-                // This is a bit of a hack to reload the game state.
-                // A more robust solution would re-initialize the game container.
-                window.location.reload();
-            });
+            document.getElementById('play-again').addEventListener('click', () => this.startGame());
         }
     }
 
-    // Need to load Chart.js
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-    script.onload = () => {
-        new Game();
-    };
-    document.head.appendChild(script);
+    new Game();
     </script>
 </body>
 </html>
