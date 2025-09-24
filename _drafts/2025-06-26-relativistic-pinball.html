@@ -539,12 +539,16 @@ class Planet {
                 const beta = speed / c;
                 ctx.fillText(`β:${beta.toFixed(2)}`, this.x - 30, this.y - this.radius - 40);
                 
-                // Draw relativistic velocity vector
+                // Draw relativistic velocity vector (capped length for readability)
                 ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x + this.vx * 3, this.y + this.vy * 3);
+                const vx3 = this.vx * 3, vy3 = this.vy * 3;
+                const vlen = Math.hypot(vx3, vy3);
+                const maxLen = 60;
+                const scale = vlen > maxLen ? maxLen / vlen : 1;
+                ctx.lineTo(this.x + vx3 * scale, this.y + vy3 * scale);
                 ctx.stroke();
             }
         }
@@ -730,8 +734,12 @@ function generateNewLevel() {
 // Game loop
 let lastTime = 0;
 function gameLoop(currentTime) {
-    const dt = (currentTime - lastTime) / 1000;
+    // Clamp timestep to avoid huge jumps on first frame or tab switches
+    let dt = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
+    if (!isFinite(dt) || dt < 0) dt = 0;
+    const maxStep = 1 / 30; // ~33ms
+    if (dt > maxStep) dt = maxStep;
     
     // Clear canvas
     ctx.fillStyle = '#000011';
@@ -935,7 +943,11 @@ canvas.addEventListener('mouseleave', (e) => {
 
 canvas.addEventListener('click', (e) => {
     if (gameState.gameWon) return;
-    if (!gameState.balls || gameState.balls.length >= gameState.maxBalls) return;
+    if (!gameState.balls) gameState.balls = [];
+    if (gameState.balls.length >= gameState.maxBalls) {
+        gameStatus.textContent = `Max ${gameState.maxBalls} balls active — wait or press Reset.`;
+        return;
+    }
     
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
