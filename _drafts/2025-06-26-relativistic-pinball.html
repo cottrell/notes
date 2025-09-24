@@ -23,7 +23,7 @@ categories: vibecoding
             flex-direction: column;
             align-items: center;
         }
-        
+
         /* Polished note styling */
         .prelude-notes {
             max-width: 900px;
@@ -59,13 +59,13 @@ categories: vibecoding
         .prelude-notes li { margin: 4px 0; }
         .prelude-notes ul ul { margin-top: 4px; }
         .prelude-notes strong { color: #7cff7c; }
-        
+
         h1 {
             color: #00ff00;
             text-shadow: 0 0 10px #00ff00;
             margin-bottom: 10px;
         }
-        
+
         #gameCanvas {
             border: 2px solid #00ff00;
             box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
@@ -74,7 +74,7 @@ categories: vibecoding
             max-height: 75vh;
             object-fit: contain;
         }
-        
+
         .game-container {
             display: flex;
             flex-direction: column;
@@ -82,19 +82,19 @@ categories: vibecoding
             width: 100%;
             max-width: 100vw;
         }
-        
+
         #controls {
             margin-top: 20px;
             text-align: center;
         }
-        
+
         #instructions {
             margin-top: 10px;
             max-width: 800px;
             line-height: 1.4;
             color: #aaa;
         }
-        
+
         .status {
             margin: 10px 0;
             padding: 10px;
@@ -102,7 +102,7 @@ categories: vibecoding
             border: 1px solid #00ff00;
             border-radius: 5px;
         }
-        
+
         button {
             background: #003300;
             color: #00ff00;
@@ -113,7 +113,7 @@ categories: vibecoding
             font-family: inherit;
             border-radius: 5px;
         }
-        
+
         button:hover {
             background: #004400;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
@@ -146,10 +146,10 @@ categories: vibecoding
             </ul>
           </div>
         </div>
-        
+
         <canvas id="gameCanvas" width="1600" height="1200"></canvas>
     </div>
-    
+
     <div id="controls">
         <button onclick="resetGame()">(R)eset Game</button>
         <button onclick="generateNewLevel()">(N)ew Level</button>
@@ -181,7 +181,7 @@ categories: vibecoding
         </div>
         <div class="status" id="gameStatus">Click anywhere to launch balls! Rapid fire enabled.</div>
     </div>
-    
+
 
     <script>
 const canvas = document.getElementById('gameCanvas');
@@ -245,19 +245,19 @@ function initAudio() {
 // Create sound effect
 function createSound(frequency, duration, type = 'sine') {
     if (!gameState.soundEnabled || !gameState.audioContext) return;
-    
+
     const oscillator = gameState.audioContext.createOscillator();
     const gainNode = gameState.audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(gameState.audioContext.destination);
-    
+
     oscillator.frequency.value = frequency;
     oscillator.type = type;
-    
+
     gainNode.gain.setValueAtTime(0.1, gameState.audioContext.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, gameState.audioContext.currentTime + duration);
-    
+
     oscillator.start(gameState.audioContext.currentTime);
     oscillator.stop(gameState.audioContext.currentTime + duration);
 }
@@ -265,7 +265,7 @@ function createSound(frequency, duration, type = 'sine') {
 // Play sound effects
 function playSound(type) {
     if (!gameState.soundEnabled) return;
-    
+
     switch(type) {
         case 'launch':
             createSound(200, 0.2, 'square');
@@ -301,39 +301,39 @@ class Ball {
         this.history = [];
         this.properTime = 0;
     }
-    
+
     update(dt) {
         if (!this.launched) return;
-        
+
         // Apply simulation speed multiplier
         dt *= gameState.simSpeed;
-        
+
         // Current velocity and relativistic calculations
         const v = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         const beta = v / c;
         const gamma = (gameState.physicsMode === 'relativistic')
             ? 1 / Math.sqrt(Math.max(1 - beta * beta, 0.0001))
             : 1;
-        
+
         // Proper time dilation - ball experiences slower time at high speeds
         const properDt = dt / gamma;
         this.properTime += properDt;
-        
+
         // Calculate spacetime curvature effects from all planets
         let ax = 0, ay = 0; // acceleration components
-        
+
         for (let planet of gameState.planets) {
             const dx = planet.x - this.x;
             const dy = planet.y - this.y;
             const r = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (r < planet.radius + this.radius) {
                 this.handleCollision(planet);
                 continue;
             }
-            
+
             const minR = Math.max(r, 5);
-            
+
             // Schwarzschild radius for this mass
             const rs = 2 * G * planet.mass / (c * c);
             const angle = Math.atan2(dy, dx);
@@ -352,7 +352,7 @@ class Ball {
                 ay += classicalAccel * Math.sin(angle);
             }
         }
-        
+
         if (gameState.physicsMode === 'relativistic') {
             // Relativistic momentum update: dp/dt = F where p = γmv
             this.vx += ax * dt / gamma;
@@ -362,7 +362,7 @@ class Ball {
             this.vx += ax * dt;
             this.vy += ay * dt;
         }
-        
+
         // Enforce speed limit with proper relativistic behavior
         const newV = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (gameState.physicsMode === 'relativistic') {
@@ -372,12 +372,12 @@ class Ball {
                 this.vy *= factor;
             }
         }
-        
+
         // Position update from our reference frame (coordinate time)
         // The ball covers distance vx*dt regardless of its internal time dilation
         this.x += this.vx * dt;
         this.y += this.vy * dt;
-        
+
         // Sound effects for relativistic motion (affected by proper time)
         if (this.launched && newV > c * 0.3) {
             const soundFrequency = 0.02 * properDt / dt; // Sounds get rarer due to time dilation
@@ -385,7 +385,7 @@ class Ball {
                 playSound('whoosh');
             }
         }
-        
+
         // Add to trail
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > 50) {
@@ -396,9 +396,9 @@ class Ball {
         while (this.history.length > 0 && this.history[0].t < simTime - gameState.historyLength) {
             this.history.shift();
         }
-        
+
         // Check if ball is out of bounds - auto reset immediately
-        if (this.x < -20 || this.x > canvas.width + 20 || 
+        if (this.x < -20 || this.x > canvas.width + 20 ||
             this.y < -20 || this.y > canvas.height + 20) {
             if (!gameState.gameLost && !gameState.gameWon) {
                 gameState.gameLost = true;
@@ -411,13 +411,13 @@ class Ball {
                 }, Math.max(500, gameState.autoResetDelay / gameState.simSpeed));
             }
         }
-        
+
         // Check if ball hits target
         if (gameState.target && !gameState.gameWon) {
             const dx = gameState.target.x - this.x;
             const dy = gameState.target.y - this.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (distance < gameState.target.radius + this.radius) {
                 gameState.gameWon = true;
                 this.launched = false; // Stop the ball
@@ -428,7 +428,7 @@ class Ball {
             }
         }
     }
-    
+
     handleCollision(planet) {
         if (!gameState.gameLost && !gameState.gameWon) {
             gameState.gameLost = true;
@@ -441,7 +441,7 @@ class Ball {
             }, Math.max(500, gameState.autoResetDelay / gameState.simSpeed));
         }
     }
-    
+
     draw() {
         // Draw trail
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -455,13 +455,13 @@ class Ball {
         }
         ctx.stroke();
         ctx.globalAlpha = 1;
-        
+
         // Draw ball
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Draw glow effect
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 3);
         gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
@@ -487,57 +487,57 @@ class Planet {
         this.initialY = y;
         this.history = [];
     }
-    
+
     update(dt) {
         if (!gameState.planetsMoving) return;
-        
+
         // Apply simulation speed multiplier
         dt *= gameState.simSpeed;
-        
+
         // Calculate gravitational forces from other planets
         let fx = 0, fy = 0;
-        
+
         for (let other of gameState.planets) {
             if (other === this) continue;
-            
+
             const dx = other.x - this.x;
             const dy = other.y - this.y;
             const r = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (r < this.radius + other.radius) {
                 // Handle planet collision - elastic collision
                 const angle = Math.atan2(dy, dx);
                 const sin = Math.sin(angle);
                 const cos = Math.cos(angle);
-                
+
                 // Rotate velocities
                 const v1x = this.vx * cos + this.vy * sin;
                 const v1y = this.vy * cos - this.vx * sin;
                 const v2x = other.vx * cos + other.vy * sin;
                 const v2y = other.vy * cos - other.vx * sin;
-                
+
                 // Elastic collision in 1D
                 const newV1x = ((this.mass - other.mass) * v1x + 2 * other.mass * v2x) / (this.mass + other.mass);
                 const newV2x = ((other.mass - this.mass) * v2x + 2 * this.mass * v1x) / (this.mass + other.mass);
-                
+
                 // Rotate back
                 this.vx = newV1x * cos - v1y * sin;
                 this.vy = v1y * cos + newV1x * sin;
                 other.vx = newV2x * cos - v2y * sin;
                 other.vy = v2y * cos + newV2x * sin;
-                
+
                 continue;
             }
-            
+
             // Gravitational force between planets
             const minR = Math.max(r, 20);
             const force = G * this.mass * other.mass / (minR * minR);
-            
+
             const angle = Math.atan2(dy, dx);
             fx += force * Math.cos(angle) / this.mass;
             fy += force * Math.sin(angle) / this.mass;
         }
-        
+
         // Add a weak central force to prevent planets from drifting away
         // Scale central force with canvas size
         const centerX = canvas.width / 2;
@@ -546,26 +546,26 @@ class Planet {
         const dcy = centerY - this.y;
         const centerR = Math.sqrt(dcx * dcx + dcy * dcy);
         const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
-        
+
         if (centerR > 50 * canvasScale) {
             const centralForce = 0.1 * centerR * canvasScale;
             const centerAngle = Math.atan2(dcy, dcx);
             fx += centralForce * Math.cos(centerAngle);
             fy += centralForce * Math.sin(centerAngle);
         }
-        
+
         // Update velocity
         this.vx += fx * dt;
         this.vy += fy * dt;
-        
+
         // Apply damping to prevent runaway motion
         this.vx *= 0.998;
         this.vy *= 0.998;
-        
+
         // Update position
         this.x += this.vx * dt;
         this.y += this.vy * dt;
-        
+
         // Keep planets roughly in bounds
         if (this.x < this.radius) {
             this.x = this.radius;
@@ -590,18 +590,18 @@ class Planet {
             this.vy = -Math.abs(this.vy) * 0.8;
         }
     }
-    
+
     draw() {
         // Draw planet
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Draw spacetime curvature visualization
         if (gameState.showPhysicsInfo) {
             const rs = 2 * G * this.mass / (c * c); // Schwarzschild radius
-            
+
             // Event horizon (if applicable)
             if (rs > 5) {
                 ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
@@ -610,11 +610,11 @@ class Planet {
                 ctx.arc(this.x, this.y, rs, 0, Math.PI * 2);
                 ctx.stroke();
             }
-            
+
             // Spacetime curvature rings
             const curvatureRadii = [rs * 2, rs * 4, rs * 8];
             const curvatureAlphas = [0.4, 0.2, 0.1];
-            
+
             for (let i = 0; i < curvatureRadii.length; i++) {
                 if (curvatureRadii[i] > 0) {
                     ctx.strokeStyle = `rgba(255, 255, 0, ${curvatureAlphas[i]})`;
@@ -624,18 +624,18 @@ class Planet {
                     ctx.stroke();
                 }
             }
-            
+
             // Planet info with relativistic data
             ctx.fillStyle = '#ffff00';
             ctx.font = '12px Courier New';
             ctx.fillText(`M:${Math.round(this.mass)}`, this.x - 30, this.y - this.radius - 25);
             ctx.fillText(`Rs:${rs.toFixed(1)}`, this.x - 30, this.y - this.radius - 10);
-            
+
             if (gameState.planetsMoving) {
                 const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                 const beta = speed / c;
                 ctx.fillText(`β:${beta.toFixed(2)}`, this.x - 30, this.y - this.radius - 40);
-                
+
                 // Draw relativistic velocity vector (capped length for readability)
                 ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
                 ctx.lineWidth = 2;
@@ -649,7 +649,7 @@ class Planet {
                 ctx.stroke();
             }
         }
-        
+
         // Draw glow
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2);
         gradient.addColorStop(0, this.color + '80');
@@ -670,7 +670,7 @@ class Target {
         this.pulsePhase = 0;
         this.history = [];
     }
-    
+
     update(dt) {
         this.pulsePhase += dt * 5 * gameState.simSpeed;
         // Record history for light-time delayed rendering
@@ -679,23 +679,23 @@ class Target {
             this.history.shift();
         }
     }
-    
+
     draw() {
         const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
-        
+
         // Draw target with pulsing effect
         ctx.fillStyle = `rgba(0, 255, 0, ${pulse})`;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Draw target rings
         ctx.strokeStyle = `rgba(0, 255, 0, ${pulse * 0.8})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
         ctx.stroke();
-        
+
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
         ctx.stroke();
@@ -719,32 +719,32 @@ function initGame() {
     const ballX = canvas.width * 0.08;
     gameState.startPos = { x: ballX, y: canvas.height / 2 };
     if (!gameState.balls) gameState.balls = [];
-    
+
     // Initialize starfield
     initStarfield();
-    
+
     // Scale everything properly based on canvas size
     const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
     const xScale = canvas.width / 800;
     const yScale = canvas.height / 600;
-    
+
     gameState.planets = [
         new Planet(200 * xScale, 200 * yScale, 2000 * canvasScale, '#ff6b6b'),
         new Planet(400 * xScale, 400 * yScale, 3000 * canvasScale, '#4ecdc4'),
         new Planet(600 * xScale, 150 * yScale, 2500 * canvasScale, '#ffe66d'),
         new Planet(300 * xScale, 500 * yScale, 1500 * canvasScale, '#ff8b94')
     ];
-    
+
     // Give planets initial orbital velocities if moving
     if (gameState.planetsMoving) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
-        
+
         for (let planet of gameState.planets) {
             const dx = planet.x - centerX;
             const dy = planet.y - centerY;
             const r = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (r > 50) {
                 // Scale orbital speed with canvas size for stable orbits
                 const baseOrbitalSpeed = Math.sqrt(200 * canvasScale / r);
@@ -754,7 +754,7 @@ function initGame() {
             }
         }
     }
-    
+
     gameState.target = new Target(canvas.width * 0.92, canvas.height * 0.5);
     gameState.gameWon = false;
     gameState.shotCount = 0;
@@ -767,33 +767,33 @@ function generateNewLevel() {
     const baseNumPlanets = 3;
     const bonusPlanets = Math.floor((canvas.width * canvas.height) / (800 * 600) * 2);
     const numPlanets = baseNumPlanets + bonusPlanets + Math.floor(Math.random() * 3);
-    
+
     const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#ff8b94', '#a8e6cf', '#ffd93d', '#6c5ce7', '#fd79a8'];
-    
+
     gameState.planets = [];
-    
+
     // Scale spacing and buffers based on actual canvas size
     const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
     const minSpacing = 80 * canvasScale;
     const startBuffer = 120 * canvasScale;
     const edgeBuffer = 80 * canvasScale;
-    
+
     // Generate planets with proper spacing for the canvas size
     for (let i = 0; i < numPlanets; i++) {
         let x, y, validPosition = false;
         let attempts = 0;
-        
+
         while (!validPosition && attempts < 100) {
             x = startBuffer + Math.random() * (canvas.width - startBuffer - edgeBuffer);
             y = edgeBuffer + Math.random() * (canvas.height - 2 * edgeBuffer);
-            
+
             // Check distance from start position
             const startX = canvas.width * 0.08;
             const startY = canvas.height / 2;
             const distFromStart = Math.sqrt((x - startX) * (x - startX) + (y - startY) * (y - startY));
-            
+
             validPosition = distFromStart > startBuffer;
-            
+
             // Check distance from other planets
             for (let planet of gameState.planets) {
                 const dist = Math.sqrt((x - planet.x) * (x - planet.x) + (y - planet.y) * (y - planet.y));
@@ -804,14 +804,14 @@ function generateNewLevel() {
             }
             attempts++;
         }
-        
+
         // Scale mass with canvas size for appropriate gravity
         const baseMass = 1000 + Math.random() * 4000;
         const mass = baseMass * canvasScale;
         const color = colors[Math.floor(Math.random() * colors.length)];
         gameState.planets.push(new Planet(x, y, mass, color));
     }
-    
+
     // Place target with proper scaling
     let targetX, targetY;
     const targetBuffer = canvas.width * 0.08;
@@ -824,7 +824,7 @@ function generateNewLevel() {
         const dist = Math.sqrt((targetX - p.x) * (targetX - p.x) + (targetY - p.y) * (targetY - p.y));
         return dist < p.radius + 40 * canvasScale;
     }));
-    
+
     gameState.target = new Target(targetX, targetY);
     const ballX = canvas.width * 0.08;
     gameState.startPos = { x: ballX, y: canvas.height / 2 };
@@ -845,11 +845,11 @@ function gameLoop(currentTime) {
     const maxStep = 1 / 30; // ~33ms
     if (dt > maxStep) dt = maxStep;
     simTime += dt;
-    
+
     // Clear canvas
     ctx.fillStyle = '#000011';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw stars
     ctx.fillStyle = '#fff';
     for (let star of gameState.stars) {
@@ -857,19 +857,19 @@ function gameLoop(currentTime) {
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fill();
     }
-    
+
     // Show simulation speed and physics info in corner
     ctx.fillStyle = '#00ff00';
     ctx.font = '16px Courier New';
     ctx.fillText(`${gameState.simSpeed}x Speed`, canvas.width - 120, 25);
-    
+
     // Show camera mode / proper time info
     if (gameState.cameraMode === 'ball' && gameState.balls && gameState.balls.length > 0) {
         const refBall = gameState.balls[gameState.balls.length - 1];
         const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
         const refBeta = refSpeed / c;
         const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.0001));
-        
+
         ctx.fillStyle = '#ffaa00';
         ctx.font = '14px Courier New';
         ctx.fillText(`Ball Camera: Shot #${refBall.shotNumber}`, canvas.width - 180, 50);
@@ -880,7 +880,7 @@ function gameLoop(currentTime) {
         ctx.font = '14px Courier New';
         ctx.fillText('Camera: Lab', canvas.width - 120, 50);
     }
-    
+
     if (gameState.showPhysicsInfo) {
         ctx.fillStyle = '#ffff00';
         ctx.font = '14px Courier New';
@@ -888,14 +888,14 @@ function gameLoop(currentTime) {
         ctx.fillText(`${physicsLabel}:`, 10, canvas.height - 180);
         ctx.fillText(`Active Balls: ${gameState.balls ? gameState.balls.length : 0}`, 10, canvas.height - 160);
         ctx.fillText(`Total Shots: ${gameState.shotCount}`, 10, canvas.height - 140);
-        
+
         // Ball camera HUD (relative rates)
         if (gameState.cameraMode === 'ball' && gameState.balls && gameState.balls.length > 0) {
             const refBall = gameState.balls[gameState.balls.length - 1];
             const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
             const refBeta = refSpeed / c;
             const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.0001));
-            
+
             ctx.fillStyle = '#ffaa00';
             ctx.fillText(`BALL CAMERA (HUD): Shot #${refBall.shotNumber}`, 10, canvas.height - 120);
             ctx.fillText(`v_ball: ${Math.round(refSpeed)} (${(refBeta * 100).toFixed(1)}% c)  γ_ball: ${refGamma.toFixed(3)}`, 10, canvas.height - 100);
@@ -907,7 +907,7 @@ function gameLoop(currentTime) {
             ctx.fillStyle = '#ffaa00';
             ctx.fillText('CAMERA: Laboratory (no light-time delayed view)', 10, canvas.height - 120);
         }
-        
+
         // Show physics for fastest ball (if not in ball frame) or all balls summary
         if (gameState.balls && gameState.balls.length > 0) {
             if (gameState.cameraMode === 'lab') {
@@ -916,18 +916,18 @@ function gameLoop(currentTime) {
                     const fastestSpeed = Math.sqrt(fastest.vx * fastest.vx + fastest.vy * fastest.vy);
                     return speed > fastestSpeed ? ball : fastest;
                 });
-                
+
                 const speed = Math.sqrt(fastestBall.vx * fastestBall.vx + fastestBall.vy * fastestBall.vy);
                 const beta = speed / c;
                 const gamma = 1 / Math.sqrt(Math.max(1 - beta * beta, 0.01));
-                
+
                 ctx.fillStyle = '#ffff00';
                 ctx.fillText(`Fastest Ball #${fastestBall.shotNumber}:`, 10, canvas.height - 40);
                 ctx.fillText(`Speed: ${Math.round(speed)} (${(beta * 100).toFixed(1)}% c)`, 10, canvas.height - 20);
             }
         }
     }
-    
+
     // Update all objects (single dt)
     if (gameState.target) {
         gameState.target.update(dt);
@@ -979,7 +979,7 @@ function gameLoop(currentTime) {
             ball.draw();
         }
     }
-    
+
     // Always draw starting position
     ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.strokeStyle = '#fff';
@@ -988,12 +988,12 @@ function gameLoop(currentTime) {
     ctx.arc(gameState.startPos.x, gameState.startPos.y, 8, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fill();
-    
+
     // Draw launch preview
     if (gameState.isAiming) {
         const dx = gameState.aimTarget.x - gameState.startPos.x;
         const dy = gameState.aimTarget.y - gameState.startPos.y;
-        
+
         ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)';
         ctx.lineWidth = 3;
         ctx.setLineDash([5, 5]);
@@ -1002,7 +1002,7 @@ function gameLoop(currentTime) {
         ctx.lineTo(gameState.aimTarget.x, gameState.aimTarget.y);
         ctx.stroke();
         ctx.setLineDash([]);
-        
+
         // Draw crosshair at aim point
         ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
         ctx.lineWidth = 2;
@@ -1012,23 +1012,23 @@ function gameLoop(currentTime) {
         ctx.moveTo(gameState.aimTarget.x, gameState.aimTarget.y - 10);
         ctx.lineTo(gameState.aimTarget.x, gameState.aimTarget.y + 10);
         ctx.stroke();
-        
+
         // Draw power indicator
         const power = Math.min(Math.sqrt(dx*dx + dy*dy), 150);
         ctx.fillStyle = `hsl(${120 - power * 0.8}, 100%, 50%)`;
         ctx.fillRect(10, 10, power * 1.5, 20);
         ctx.strokeStyle = '#fff';
         ctx.strokeRect(10, 10, 225, 20);
-        
+
         // Show current simulation speed
         ctx.fillStyle = '#00ff00';
         ctx.font = '14px Courier New';
         ctx.fillText(`Speed: ${gameState.simSpeed}x`, 10, 50);
-        
+
         // Show power value
         ctx.fillText(`Power: ${Math.round(power)}`, 10, 70);
     }
-    
+
     requestAnimationFrame(gameLoop);
 }
 
@@ -1112,11 +1112,11 @@ function drawRelativisticOverlays(refBall, x, y, radius, objVx, objVy) {
 // Mouse event handlers
 canvas.addEventListener('mousemove', (e) => {
     if (gameState.gameWon) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     // Always show aim line when hovering
     gameState.isAiming = true;
     gameState.aimTarget = { x, y };
@@ -1134,33 +1134,33 @@ canvas.addEventListener('click', (e) => {
         gameStatus.textContent = `Max ${gameState.maxBalls} balls active — wait or press Reset.`;
         return;
     }
-    
+
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     // Calculate launch vector from start position to click point
     const dx = x - gameState.startPos.x;
     const dy = y - gameState.startPos.y;
-    
+
     // Scale the launch velocity based on distance
     const distance = Math.sqrt(dx * dx + dy * dy);
-    
+
     // Guard against divide-by-zero if click is exactly on start position
     if (distance < 1) return;
-    
+
     const maxDistance = 200;
     const velocityScale = Math.min(distance / maxDistance, 1) * 3 + 0.5;
-    
+
     // Create and launch new ball
     const newBall = new Ball(gameState.startPos.x, gameState.startPos.y);
     newBall.vx = (dx / distance) * distance * velocityScale;
     newBall.vy = (dy / distance) * distance * velocityScale;
     newBall.launched = true;
     newBall.shotNumber = ++gameState.shotCount;
-    
+
     gameState.balls.push(newBall);
-    
+
     playSound('launch');
     gameStatus.textContent = `Shot #${gameState.shotCount} fired! ${gameState.balls.length} balls active.`;
 });
@@ -1179,7 +1179,7 @@ function resetGame() {
 function changeCanvasSize() {
     const select = document.getElementById('canvasSize');
     const size = select.value;
-    
+
     let width, height;
     switch(size) {
         case 'small':
@@ -1197,10 +1197,10 @@ function changeCanvasSize() {
         default:
             width = 800; height = 600;
     }
-    
+
     canvas.width = width;
     canvas.height = height;
-    
+
     // Reinitialize game with new dimensions - this creates a truly larger play area
     initGame();
     const area = Math.round((width * height) / 1000);
@@ -1211,15 +1211,15 @@ function changeCanvasSize() {
 function changeSimSpeed() {
     const select = document.getElementById('simSpeed');
     gameState.simSpeed = parseFloat(select.value);
-    
+
     const speedText = {
         1: '1x (Normal)',
-        2: '2x (Fast)', 
+        2: '2x (Fast)',
         3: '3x (Faster)',
         4: '4x (Very Fast)',
         5: '5x (Extreme)'
     };
-    
+
     gameStatus.textContent = `Simulation speed set to ${speedText[gameState.simSpeed]}! ${gameState.balls && gameState.balls.length > 0 ? 'Watch the action!' : 'Click anywhere to launch balls!'}`;
 }
 
@@ -1228,17 +1228,17 @@ function togglePlanetMotion() {
     gameState.planetsMoving = !gameState.planetsMoving;
     const button = document.querySelector('button[onclick="togglePlanetMotion()"]');
     button.textContent = gameState.planetsMoving ? 'Planets: (M)oving' : 'Planets: (S)tatic';
-    
+
     if (gameState.planetsMoving) {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
-        
+
         for (let planet of gameState.planets) {
             const dx = planet.x - centerX;
             const dy = planet.y - centerY;
             const r = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (r > 50 * canvasScale) {
                 const baseOrbitalSpeed = Math.sqrt(200 * canvasScale / r);
                 const orbitalSpeed = baseOrbitalSpeed * (0.5 + Math.random() * 0.5);
@@ -1291,7 +1291,7 @@ function togglePhysicsInfo() {
     gameState.showPhysicsInfo = !gameState.showPhysicsInfo;
     const button = document.querySelector('button[onclick="togglePhysicsInfo()"]');
     button.textContent = gameState.showPhysicsInfo ? '(P)hysics: ON' : '(P)hysics: OFF';
-    
+
     if (gameState.showPhysicsInfo) {
         gameStatus.textContent = "Relativistic physics overlay enabled! See spacetime curvature, time dilation, and relativistic effects.";
     } else {
@@ -1303,7 +1303,7 @@ function toggleSound() {
     gameState.soundEnabled = !gameState.soundEnabled;
     const button = document.querySelector('button[onclick="toggleSound()"]');
     button.textContent = gameState.soundEnabled ? '(S)ound: ON' : '(S)ound: OFF';
-    
+
     if (!gameState.audioContext && gameState.soundEnabled) {
         initAudio();
     }
