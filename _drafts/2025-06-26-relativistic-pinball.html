@@ -24,6 +24,42 @@ categories: vibecoding
             align-items: center;
         }
         
+        /* Polished note styling */
+        .prelude-notes {
+            max-width: 900px;
+            margin: 0 auto 16px;
+            padding: 10px 14px;
+            color: #cfcfcf;
+            background: rgba(0, 255, 0, 0.035);
+            border-left: 3px solid #00ff00;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .about-toggle {
+            background: transparent;
+            color: #7cff7c;
+            border: 1px solid #00ff00;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 6px 0 4px 0;
+        }
+        .about-toggle:hover { background: rgba(0,255,0,0.07); }
+        .about-content { margin-top: 6px; }
+        .prelude-notes p {
+            margin: 0 0 6px 0;
+        }
+        .prelude-notes ul {
+            margin: 8px 0 0 18px;
+            padding: 0;
+        }
+        .prelude-notes li { margin: 4px 0; }
+        .prelude-notes ul ul { margin-top: 4px; }
+        .prelude-notes strong { color: #7cff7c; }
+        
         h1 {
             color: #00ff00;
             text-shadow: 0 0 10px #00ff00;
@@ -86,27 +122,29 @@ categories: vibecoding
 </head>
 <body>
     <div class="game-container">
-        <h1>Relativistic Pinball</h1>
-        <div class="prelude-notes" style="max-width: 900px; margin: 0 auto 16px; color: #ccc; text-align: left;">
+        <div class="prelude-notes" style="text-align: left;">
           <p>Nothing has been checked.</p>
-          <p>Notes on views and physics modes (for future me):</p>
-          <ul>
-            <li><strong>Physics mode</strong>: Classical vs Relativistic (weak‑field).
-              <ul>
-                <li><strong>Classical</strong>: Newtonian N‑body; ball uses a = Σ Gm/r², no γ, no hard c‑limit.</li>
-                <li><strong>Relativistic</strong>: SR‑ish kinematics for the ball (dp/dt with γ, speed &lt; c) plus mild, gameplay‑driven gravity corrections; approximation, not full GR.</li>
-              </ul>
-            </li>
-            <li><strong>Camera mode</strong>: Lab vs Ball Camera.
-              <ul>
-                <li><strong>Lab</strong>: Draws current positions at the current simulation time.</li>
-                <li><strong>Ball Camera</strong>: Draws apparent (light‑time delayed) positions from the newest ball’s perspective using short history buffers; affects rendering only, not physics.</li>
-              </ul>
-            </li>
-            <li><strong>Proper‑time HUD</strong>: Shows the selected ball’s proper time and γ; physics integrates in the simulation (lab) frame for stability.</li>
-            <li><strong>Intentional compromises</strong>: No full GR geodesics, no true simultaneity handling; the “ball view” is an observer/camera effect to convey intuition without re‑integrating in changing frames.</li>
-            <li><strong>Controls</strong>: (F) physics mode; (T) camera mode; (M) planet motion; (P) overlay; (R) reset; (N) new level; (S) sound.</li>
-          </ul>
+          <button id="aboutToggle" class="about-toggle">About this simulation ▸</button>
+          <div id="aboutContent" class="about-content" style="display:none;">
+            <p>Notes on views and physics modes (for future me):</p>
+            <ul>
+              <li><strong>Physics mode</strong>: Classical vs Relativistic (weak‑field).
+                <ul>
+                  <li><strong>Classical</strong>: Newtonian N‑body; ball uses a = Σ Gm/r², no γ, no hard c‑limit.</li>
+                  <li><strong>Relativistic</strong>: SR‑ish kinematics for the ball (dp/dt with γ, speed &lt; c) plus mild, gameplay‑driven gravity corrections; approximation, not full GR.</li>
+                </ul>
+              </li>
+              <li><strong>Camera mode</strong>: Lab vs Ball Camera.
+                <ul>
+                  <li><strong>Lab</strong>: Draws current positions at the current simulation time.</li>
+                  <li><strong>Ball Camera</strong>: Draws apparent (light‑time delayed) positions from the newest ball’s perspective using short history buffers; affects rendering only, not physics.</li>
+                </ul>
+              </li>
+              <li><strong>Proper‑time HUD</strong>: Shows the selected ball’s proper time and γ; physics integrates in the simulation (lab) frame for stability.</li>
+              <li><strong>Intentional compromises</strong>: No full GR geodesics, no true simultaneity handling; the “ball view” is an observer/camera effect to convey intuition without re‑integrating in changing frames.</li>
+              <li><strong>Controls</strong>: (F) physics mode; (T) camera mode; (M) planet motion; (P) overlay; (R) reset; (N) new level; (S) sound.</li>
+            </ul>
+          </div>
         </div>
         
         <canvas id="gameCanvas" width="1600" height="1200"></canvas>
@@ -149,6 +187,22 @@ categories: vibecoding
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const gameStatus = document.getElementById('gameStatus');
+// About notes toggle
+const aboutToggleEl = document.getElementById('aboutToggle');
+const aboutContentEl = document.getElementById('aboutContent');
+if (aboutToggleEl && aboutContentEl) {
+    let aboutOpen = (typeof localStorage !== 'undefined') && localStorage.getItem('aboutOpen') === '1';
+    function renderAbout() {
+        aboutContentEl.style.display = aboutOpen ? 'block' : 'none';
+        aboutToggleEl.textContent = aboutOpen ? 'About this simulation ▾' : 'About this simulation ▸';
+    }
+    aboutToggleEl.addEventListener('click', () => {
+        aboutOpen = !aboutOpen;
+        try { localStorage.setItem('aboutOpen', aboutOpen ? '1' : '0'); } catch (e) {}
+        renderAbout();
+    });
+    renderAbout();
+}
 
 // Relativistic physics constants (scaled for game)
 const c = 200;           // Speed of light (game units)
@@ -898,6 +952,7 @@ function gameLoop(currentTime) {
         if (cameraBall && gameState.target.history && gameState.target.history.length) {
             const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, gameState.target.history);
             swapDrawTarget(gameState.target, rp.x, rp.y);
+            drawRelativisticOverlays(cameraBall, rp.x, rp.y, gameState.target.radius, 0, 0);
         } else {
             gameState.target.draw();
         }
@@ -908,6 +963,7 @@ function gameLoop(currentTime) {
         if (cameraBall && planet.history && planet.history.length) {
             const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, planet.history);
             swapDrawPlanet(planet, rp.x, rp.y);
+            drawRelativisticOverlays(cameraBall, rp.x, rp.y, planet.radius, planet.vx, planet.vy);
         } else {
             planet.draw();
         }
@@ -918,6 +974,7 @@ function gameLoop(currentTime) {
         if (cameraBall && ball !== cameraBall && ball.history && ball.history.length) {
             const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, ball.history);
             swapDrawBall(ball, rp.x, rp.y);
+            drawRelativisticOverlays(cameraBall, rp.x, rp.y, ball.radius, ball.vx, ball.vy);
         } else {
             ball.draw();
         }
@@ -1007,6 +1064,49 @@ function swapDrawBall(ball, x, y) {
     const ox = ball.x, oy = ball.y;
     ball.x = x; ball.y = y; ball.draw();
     ball.x = ox; ball.y = oy;
+}
+
+// Visual overlays: Doppler tint + length contraction ellipse (approximate)
+function drawRelativisticOverlays(refBall, x, y, radius, objVx, objVy) {
+    const relVx = (objVx || 0) - refBall.vx;
+    const relVy = (objVy || 0) - refBall.vy;
+    const beta = Math.min(Math.hypot(relVx, relVy) / c, 0.9999);
+    const gamma = 1 / Math.sqrt(1 - beta * beta);
+    const contraction = 1 / gamma;
+
+    // Length contraction: ellipse along relative-motion direction
+    if (beta > 0.05) {
+        const angle = Math.atan2(relVy, relVx);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.strokeStyle = 'rgba(124,255,124,0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius * contraction, radius, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Doppler tint: based on radial relative velocity
+    const dx = x - refBall.x, dy = y - refBall.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const vRad = (relVx * dx + relVy * dy) / dist;
+    const betaRad = Math.max(Math.min(vRad / c, 0.99), -0.99);
+    const intensity = Math.abs(betaRad) * 0.7;
+    if (intensity > 0.02) {
+        // Choose tint color
+        const approach = betaRad < 0; // approaching → blueshift
+        const colorNear = approach ? 'rgba(120,170,255,' + intensity.toFixed(3) + ')' : 'rgba(255,120,110,' + intensity.toFixed(3) + ')';
+        const colorFar = approach ? 'rgba(120,170,255,0)' : 'rgba(255,120,110,0)';
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, radius * 2.2);
+        grad.addColorStop(0, colorNear);
+        grad.addColorStop(1, colorFar);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
 
 // Mouse event handlers
