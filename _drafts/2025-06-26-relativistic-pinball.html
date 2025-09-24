@@ -5,7 +5,6 @@ date: 2025-06-26
 categories: vibecoding
 ---
 
-Nothing has been checked.
 
 <!DOCTYPE html>
 <html lang="en">
@@ -88,6 +87,27 @@ Nothing has been checked.
 <body>
     <div class="game-container">
         <h1>Relativistic Pinball</h1>
+        <div class="prelude-notes" style="max-width: 900px; margin: 0 auto 16px; color: #ccc; text-align: left;">
+          <p>Nothing has been checked.</p>
+          <p>Notes on views and physics modes (for future me):</p>
+          <ul>
+            <li><strong>Physics mode</strong>: Classical vs Relativistic (weak‑field).
+              <ul>
+                <li><strong>Classical</strong>: Newtonian N‑body; ball uses a = Σ Gm/r², no γ, no hard c‑limit.</li>
+                <li><strong>Relativistic</strong>: SR‑ish kinematics for the ball (dp/dt with γ, speed &lt; c) plus mild, gameplay‑driven gravity corrections; approximation, not full GR.</li>
+              </ul>
+            </li>
+            <li><strong>Camera mode</strong>: Lab vs Ball Camera.
+              <ul>
+                <li><strong>Lab</strong>: Draws current positions at the current simulation time.</li>
+                <li><strong>Ball Camera</strong>: Draws apparent (light‑time delayed) positions from the newest ball’s perspective using short history buffers; affects rendering only, not physics.</li>
+              </ul>
+            </li>
+            <li><strong>Proper‑time HUD</strong>: Shows the selected ball’s proper time and γ; physics integrates in the simulation (lab) frame for stability.</li>
+            <li><strong>Intentional compromises</strong>: No full GR geodesics, no true simultaneity handling; the “ball view” is an observer/camera effect to convey intuition without re‑integrating in changing frames.</li>
+            <li><strong>Controls</strong>: (F) physics mode; (T) camera mode; (M) planet motion; (P) overlay; (R) reset; (N) new level; (S) sound.</li>
+          </ul>
+        </div>
         
         <canvas id="gameCanvas" width="1600" height="1200"></canvas>
     </div>
@@ -98,7 +118,8 @@ Nothing has been checked.
         <button onclick="togglePhysicsInfo()">(P)hysics: ON</button>
         <button onclick="toggleSound()">(S)ound: ON</button>
         <button onclick="togglePlanetMotion()">Planets: (M)oving</button>
-        <button onclick="toggleTemporalFrame()">(T)ime: Lab Frame</button>
+        <button onclick="toggleCameraMode()">(T)ime/Camera: Lab</button>
+        <button onclick="togglePhysicsMode()">(F)ysics Mode: Relativistic</button>
         <div style="margin-top: 10px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
             <div>
                 <label for="canvasSize">Canvas Size: </label>
@@ -148,11 +169,13 @@ let gameState = {
     sounds: {},
     simSpeed: 4, // simulation speed multiplier
     planetsMoving: true, // whether planets move or are static
-    temporalFrame: 'lab', // 'lab' or 'ball' - which temporal reference frame
+    cameraMode: 'lab', // 'lab' or 'ball' - rendering camera mode
+    physicsMode: 'relativistic', // 'classical' or 'relativistic'
     maxBalls: 10, // Maximum concurrent balls
     shotCount: 0, // Total shots fired
     autoResetDelay: 1000, // Delay before auto-reset in milliseconds
-    stars: [] // Precomputed starfield
+    stars: [], // Precomputed starfield
+    historyLength: 8 // seconds of history for light-time delayed rendering
 };
 
 // Initialize audio
@@ -221,6 +244,8 @@ class Ball {
         this.shouldRemove = false;
         this.shotNumber = 0;
         this.hitTarget = false;
+        this.history = [];
+        this.properTime = 0;
     }
     
     update(dt) {
@@ -232,10 +257,13 @@ class Ball {
         // Current velocity and relativistic calculations
         const v = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         const beta = v / c;
-        const gamma = 1 / Math.sqrt(Math.max(1 - beta * beta, 0.01));
+        const gamma = (gameState.physicsMode === 'relativistic')
+            ? 1 / Math.sqrt(Math.max(1 - beta * beta, 0.0001))
+            : 1;
         
         // Proper time dilation - ball experiences slower time at high speeds
         const properDt = dt / gamma;
+        this.properTime += properDt;
         
         // Calculate spacetime curvature effects from all planets
         let ax = 0, ay = 0; // acceleration components
@@ -254,38 +282,41 @@ class Ball {
             
             // Schwarzschild radius for this mass
             const rs = 2 * G * planet.mass / (c * c);
-            
-            // Relativistic gravitational acceleration (geodesic equation)
-            const classicalAccel = G * planet.mass / (minR * minR);
-            
-            // Relativistic corrections:
-            // 1. Velocity-dependent terms (frame dragging)
-            const velocityCorrection = 1 + 3 * (this.vx * dx + this.vy * dy) / (c * minR);
-            
-            // 2. Post-Newtonian corrections (1PN)
-            const pnCorrection = 1 + rs / minR + v * v / (c * c);
-            
-            // 3. Strong field effects near event horizon (clamped to prevent NaN)
-            const strongFieldFactor = Math.min(1 / Math.sqrt(Math.max(1 - rs / minR, 0.01)), 10);
-            
-            const relativisticAccel = classicalAccel * velocityCorrection * pnCorrection * strongFieldFactor;
-            
             const angle = Math.atan2(dy, dx);
-            ax += relativisticAccel * Math.cos(angle);
-            ay += relativisticAccel * Math.sin(angle);
+            const classicalAccel = G * planet.mass / (minR * minR);
+            if (gameState.physicsMode === 'relativistic') {
+                // Relativistic corrections (approximate)
+                const velocityCorrection = 1 + 3 * (this.vx * dx + this.vy * dy) / (c * minR);
+                const pnCorrection = 1 + rs / minR + v * v / (c * c);
+                const strongFieldFactor = Math.min(1 / Math.sqrt(Math.max(1 - rs / minR, 0.01)), 10);
+                const relativisticAccel = classicalAccel * velocityCorrection * pnCorrection * strongFieldFactor;
+                ax += relativisticAccel * Math.cos(angle);
+                ay += relativisticAccel * Math.sin(angle);
+            } else {
+                // Classical Newtonian acceleration
+                ax += classicalAccel * Math.cos(angle);
+                ay += classicalAccel * Math.sin(angle);
+            }
         }
         
-        // Relativistic momentum update: dp/dt = F where p = γmv
-        // Acceleration becomes harder at high speeds due to relativistic mass
-        this.vx += ax * dt / gamma;
-        this.vy += ay * dt / gamma;
+        if (gameState.physicsMode === 'relativistic') {
+            // Relativistic momentum update: dp/dt = F where p = γmv
+            this.vx += ax * dt / gamma;
+            this.vy += ay * dt / gamma;
+        } else {
+            // Classical update
+            this.vx += ax * dt;
+            this.vy += ay * dt;
+        }
         
         // Enforce speed limit with proper relativistic behavior
         const newV = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-        if (newV > c * 0.99) {
-            const factor = (c * 0.99) / newV;
-            this.vx *= factor;
-            this.vy *= factor;
+        if (gameState.physicsMode === 'relativistic') {
+            if (newV > c * 0.99) {
+                const factor = (c * 0.99) / newV;
+                this.vx *= factor;
+                this.vy *= factor;
+            }
         }
         
         // Position update from our reference frame (coordinate time)
@@ -305,6 +336,11 @@ class Ball {
         this.trail.push({ x: this.x, y: this.y });
         if (this.trail.length > 50) {
             this.trail.shift();
+        }
+        // Record history for light-time delayed rendering
+        this.history.push({ t: simTime, x: this.x, y: this.y });
+        while (this.history.length > 0 && this.history[0].t < simTime - gameState.historyLength) {
+            this.history.shift();
         }
         
         // Check if ball is out of bounds - auto reset immediately
@@ -395,6 +431,7 @@ class Planet {
         this.color = color;
         this.initialX = x;
         this.initialY = y;
+        this.history = [];
     }
     
     update(dt) {
@@ -484,6 +521,12 @@ class Planet {
             this.x = canvas.width - this.radius;
             this.vx = -Math.abs(this.vx) * 0.8;
         }
+
+        // Record history for light-time delayed rendering
+        this.history.push({ t: simTime, x: this.x, y: this.y });
+        while (this.history.length > 0 && this.history[0].t < simTime - gameState.historyLength) {
+            this.history.shift();
+        }
         if (this.y < this.radius) {
             this.y = this.radius;
             this.vy = Math.abs(this.vy) * 0.8;
@@ -571,10 +614,16 @@ class Target {
         this.y = y;
         this.radius = 15;
         this.pulsePhase = 0;
+        this.history = [];
     }
     
     update(dt) {
         this.pulsePhase += dt * 5 * gameState.simSpeed;
+        // Record history for light-time delayed rendering
+        this.history.push({ t: simTime, x: this.x, y: this.y });
+        while (this.history.length > 0 && this.history[0].t < simTime - gameState.historyLength) {
+            this.history.shift();
+        }
     }
     
     draw() {
@@ -733,6 +782,7 @@ function generateNewLevel() {
 
 // Game loop
 let lastTime = 0;
+let simTime = 0; // global simulation time (seconds)
 function gameLoop(currentTime) {
     // Clamp timestep to avoid huge jumps on first frame or tab switches
     let dt = (currentTime - lastTime) / 1000;
@@ -740,6 +790,7 @@ function gameLoop(currentTime) {
     if (!isFinite(dt) || dt < 0) dt = 0;
     const maxStep = 1 / 30; // ~33ms
     if (dt > maxStep) dt = maxStep;
+    simTime += dt;
     
     // Clear canvas
     ctx.fillStyle = '#000011';
@@ -758,50 +809,54 @@ function gameLoop(currentTime) {
     ctx.font = '16px Courier New';
     ctx.fillText(`${gameState.simSpeed}x Speed`, canvas.width - 120, 25);
     
-    // Show temporal reference frame
-    if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
+    // Show camera mode / proper time info
+    if (gameState.cameraMode === 'ball' && gameState.balls && gameState.balls.length > 0) {
         const refBall = gameState.balls[gameState.balls.length - 1];
         const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
         const refBeta = refSpeed / c;
-        const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
+        const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.0001));
         
         ctx.fillStyle = '#ffaa00';
         ctx.font = '14px Courier New';
-        ctx.fillText(`Ball #${refBall.shotNumber} Frame`, canvas.width - 150, 50);
-        ctx.fillText(`Time Factor: ${(1/refGamma).toFixed(3)}x`, canvas.width - 150, 70);
+        ctx.fillText(`Ball Camera: Shot #${refBall.shotNumber}`, canvas.width - 180, 50);
+        ctx.fillText(`Ball Proper Time: ${refBall.properTime.toFixed(2)} s`, canvas.width - 220, 70);
+        ctx.fillText(`γ(ball): ${refGamma.toFixed(3)}`, canvas.width - 150, 90);
     } else {
         ctx.fillStyle = '#ffaa00';
         ctx.font = '14px Courier New';
-        ctx.fillText('Lab Frame', canvas.width - 120, 50);
+        ctx.fillText('Camera: Lab', canvas.width - 120, 50);
     }
     
     if (gameState.showPhysicsInfo) {
         ctx.fillStyle = '#ffff00';
         ctx.font = '14px Courier New';
-        ctx.fillText('RELATIVISTIC PHYSICS:', 10, canvas.height - 180);
+        const physicsLabel = gameState.physicsMode === 'relativistic' ? 'RELATIVISTIC PHYSICS' : 'CLASSICAL PHYSICS';
+        ctx.fillText(`${physicsLabel}:`, 10, canvas.height - 180);
         ctx.fillText(`Active Balls: ${gameState.balls ? gameState.balls.length : 0}`, 10, canvas.height - 160);
         ctx.fillText(`Total Shots: ${gameState.shotCount}`, 10, canvas.height - 140);
         
-        // Show temporal frame info
-        if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
+        // Ball camera HUD (relative rates)
+        if (gameState.cameraMode === 'ball' && gameState.balls && gameState.balls.length > 0) {
             const refBall = gameState.balls[gameState.balls.length - 1];
             const refSpeed = Math.sqrt(refBall.vx * refBall.vx + refBall.vy * refBall.vy);
             const refBeta = refSpeed / c;
-            const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
+            const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.0001));
             
             ctx.fillStyle = '#ffaa00';
-            ctx.fillText(`TEMPORAL FRAME: Ball #${refBall.shotNumber}`, 10, canvas.height - 120);
-            ctx.fillText(`Reference Speed: ${Math.round(refSpeed)} (${(refBeta * 100).toFixed(1)}% c)`, 10, canvas.height - 100);
-            ctx.fillText(`Time Dilation Factor: ${refGamma.toFixed(3)}`, 10, canvas.height - 80);
-            ctx.fillText(`Others appear ${(1/refGamma).toFixed(3)}x slower`, 10, canvas.height - 60);
+            ctx.fillText(`BALL CAMERA (HUD): Shot #${refBall.shotNumber}`, 10, canvas.height - 120);
+            ctx.fillText(`v_ball: ${Math.round(refSpeed)} (${(refBeta * 100).toFixed(1)}% c)  γ_ball: ${refGamma.toFixed(3)}`, 10, canvas.height - 100);
+            // Legend line for conceptual clarity
+            ctx.fillStyle = '#aaaaaa';
+            ctx.font = '12px Courier New';
+            ctx.fillText('Ball camera draws light-time delayed positions; physics runs in lab frame.', 10, canvas.height - 80);
         } else {
             ctx.fillStyle = '#ffaa00';
-            ctx.fillText('TEMPORAL FRAME: Laboratory (normal time)', 10, canvas.height - 120);
+            ctx.fillText('CAMERA: Laboratory (no light-time delayed view)', 10, canvas.height - 120);
         }
         
         // Show physics for fastest ball (if not in ball frame) or all balls summary
         if (gameState.balls && gameState.balls.length > 0) {
-            if (gameState.temporalFrame === 'lab') {
+            if (gameState.cameraMode === 'lab') {
                 const fastestBall = gameState.balls.reduce((fastest, ball) => {
                     const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
                     const fastestSpeed = Math.sqrt(fastest.vx * fastest.vx + fastest.vy * fastest.vy);
@@ -819,55 +874,52 @@ function gameLoop(currentTime) {
         }
     }
     
-    // Calculate temporal reference frame effects
-    let temporalDt = dt;
-    let referenceBall = null;
-    
-    if (gameState.temporalFrame === 'ball' && gameState.balls && gameState.balls.length > 0) {
-        // Use newest ball (last in array) as temporal reference
-        referenceBall = gameState.balls[gameState.balls.length - 1];
-        const refSpeed = Math.sqrt(referenceBall.vx * referenceBall.vx + referenceBall.vy * referenceBall.vy);
-        const refBeta = refSpeed / c;
-        const refGamma = 1 / Math.sqrt(Math.max(1 - refBeta * refBeta, 0.01));
-        
-        // From reference ball's perspective, everything else happens slower
-        temporalDt = dt / refGamma;
-    }
-    
-    // Update and draw game objects with temporal scaling
+    // Update all objects (single dt)
     if (gameState.target) {
-        gameState.target.update(temporalDt);
-        gameState.target.draw();
+        gameState.target.update(dt);
     }
-    
     for (let planet of gameState.planets) {
-        planet.update(temporalDt);
-        planet.draw();
+        planet.update(dt);
     }
-    
-    // Update and draw all balls, remove out-of-bounds ones
     for (let i = gameState.balls.length - 1; i >= 0; i--) {
         const ball = gameState.balls[i];
-        
-        // Reference ball uses normal time, others use temporal time
-        const ballDt = (referenceBall === ball) ? dt : temporalDt;
-        
-        ball.update(ballDt);
-        
-        // Visual indication of reference ball
-        if (referenceBall === ball && gameState.temporalFrame === 'ball') {
-            // Draw special border around reference ball
-            ctx.strokeStyle = '#ffaa00';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius + 8, 0, Math.PI * 2);
-            ctx.stroke();
+        ball.update(dt);
+        if (ball.shouldRemove) gameState.balls.splice(i, 1);
+    }
+
+    // Draw using camera mode
+    let cameraBall = null;
+    if (gameState.cameraMode === 'ball' && gameState.balls && gameState.balls.length > 0) {
+        cameraBall = gameState.balls[gameState.balls.length - 1];
+    }
+
+    // Draw target
+    if (gameState.target) {
+        if (cameraBall && gameState.target.history && gameState.target.history.length) {
+            const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, gameState.target.history);
+            swapDrawTarget(gameState.target, rp.x, rp.y);
+        } else {
+            gameState.target.draw();
         }
-        
-        ball.draw();
-        
-        if (ball.shouldRemove) {
-            gameState.balls.splice(i, 1);
+    }
+
+    // Draw planets
+    for (let planet of gameState.planets) {
+        if (cameraBall && planet.history && planet.history.length) {
+            const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, planet.history);
+            swapDrawPlanet(planet, rp.x, rp.y);
+        } else {
+            planet.draw();
+        }
+    }
+
+    // Draw balls
+    for (let ball of gameState.balls) {
+        if (cameraBall && ball !== cameraBall && ball.history && ball.history.length) {
+            const rp = apparentPosition(cameraBall.x, cameraBall.y, simTime, ball.history);
+            swapDrawBall(ball, rp.x, rp.y);
+        } else {
+            ball.draw();
         }
     }
     
@@ -921,6 +973,40 @@ function gameLoop(currentTime) {
     }
     
     requestAnimationFrame(gameLoop);
+}
+
+// Compute apparent (light-time delayed) position relative to observer at (ox, oy) and current time tNow
+function apparentPosition(ox, oy, tNow, history) {
+    // Find history sample minimizing |distance - c * (tNow - t)|
+    let best = history[history.length - 1];
+    let bestErr = Infinity;
+    for (let i = history.length - 1; i >= 0; i--) {
+        const h = history[i];
+        const dx = h.x - ox, dy = h.y - oy;
+        const dist = Math.hypot(dx, dy);
+        const delay = tNow - h.t;
+        const err = Math.abs(dist - c * delay);
+        if (err < bestErr) { bestErr = err; best = h; }
+        if (h.t < tNow - gameState.historyLength) break;
+    }
+    return { x: best.x, y: best.y };
+}
+
+// Helpers to draw at a temporary position without mutating object state
+function swapDrawPlanet(planet, x, y) {
+    const ox = planet.x, oy = planet.y;
+    planet.x = x; planet.y = y; planet.draw();
+    planet.x = ox; planet.y = oy;
+}
+function swapDrawTarget(target, x, y) {
+    const ox = target.x, oy = target.y;
+    target.x = x; target.y = y; target.draw();
+    target.x = ox; target.y = oy;
+}
+function swapDrawBall(ball, x, y) {
+    const ox = ball.x, oy = ball.y;
+    ball.x = x; ball.y = y; ball.draw();
+    ball.x = ox; ball.y = oy;
 }
 
 // Mouse event handlers
@@ -1070,22 +1156,34 @@ function togglePlanetMotion() {
     }
 }
 
-// Toggle temporal reference frame
-function toggleTemporalFrame() {
-    gameState.temporalFrame = gameState.temporalFrame === 'lab' ? 'ball' : 'lab';
-    const button = document.querySelector('button[onclick="toggleTemporalFrame()"]');
-    
-    if (gameState.temporalFrame === 'ball') {
-        button.textContent = '(T)ime: Ball Frame';
+// Toggle camera mode (lab vs ball camera with light-time delayed view)
+function toggleCameraMode() {
+    gameState.cameraMode = gameState.cameraMode === 'lab' ? 'ball' : 'lab';
+    const button = document.querySelector('button[onclick="toggleCameraMode()"]');
+    if (gameState.cameraMode === 'ball') {
+        button.textContent = '(T)ime/Camera: Ball';
         if (gameState.balls && gameState.balls.length > 0) {
             const refBall = gameState.balls[gameState.balls.length - 1];
-            gameStatus.textContent = `Temporal frame: Ball #${refBall.shotNumber} perspective! Time flows differently.`;
+            gameStatus.textContent = `Camera: Ball #${refBall.shotNumber} (light-time delayed view).`;
         } else {
-            gameStatus.textContent = "Ball temporal frame selected - launch a ball to see effects!";
+            gameStatus.textContent = 'Camera set to Ball — launch to see light-time delayed view.';
         }
     } else {
-        button.textContent = '(T)ime: Lab Frame';
-        gameStatus.textContent = "Temporal frame: Laboratory perspective (normal time flow).";
+        button.textContent = '(T)ime/Camera: Lab';
+        gameStatus.textContent = 'Camera: Lab (standard view).';
+    }
+}
+
+// Toggle physics mode (classical vs relativistic)
+function togglePhysicsMode() {
+    gameState.physicsMode = gameState.physicsMode === 'relativistic' ? 'classical' : 'relativistic';
+    const button = document.querySelector('button[onclick="togglePhysicsMode()"]');
+    const label = gameState.physicsMode === 'relativistic' ? 'Relativistic' : 'Classical';
+    button.textContent = `(F)ysics Mode: ${label}`;
+    if (gameState.physicsMode === 'relativistic') {
+        gameStatus.textContent = 'Physics mode: Relativistic (weak-field approximation).';
+    } else {
+        gameStatus.textContent = 'Physics mode: Classical Newtonian.';
     }
 }
 
@@ -1136,7 +1234,10 @@ document.addEventListener('keydown', (e) => {
             togglePlanetMotion();
             break;
         case 't':
-            toggleTemporalFrame();
+            toggleCameraMode();
+            break;
+        case 'f':
+            togglePhysicsMode();
             break;
     }
 });
