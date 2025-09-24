@@ -318,14 +318,14 @@
             this.state = {
                 round: 1,
                 streak: 0,
+                wealth: 1,
                 currentChoices: null,
                 activeDecayChoice: null,
                 decayInterval: null,
                 decayStartTime: 0,
-                playerWealth: [1],
-                optimalWealth: [1],
-                worstWealth: [1],
+                totalTime: 0,
             };
+            this.wealthHistory = { t: [0], wealth: [1] };
             if (this.wealthChartInstance) this.wealthChartInstance.destroy();
             this.setupWealthChart();
             this.addEventListeners();
@@ -356,74 +356,51 @@
             if (!this.state.currentChoices) return;
             if (this.state.decayInterval) clearInterval(this.state.decayInterval);
 
-            this.updateWealth(true);
-
             const selectedChoice = this.state.currentChoices[optionKey];
             this.state.activeDecayChoice = selectedChoice;
             this.DOM.activeBonusText.textContent = selectedChoice.display;
 
             const { A, B } = this.state.currentChoices;
             const optimalChoiceKey = A.getExpectedLogReturn() > B.getExpectedLogReturn() ? 'A' : 'B';
-            const worstChoiceKey = optimalChoiceKey === 'A' ? 'B' : 'A';
             if (optionKey === optimalChoiceKey) this.state.streak++;
             else this.state.streak = 0;
 
-            const choiceType = selectedChoice.type;
-            const optimalReturn = this.state.currentChoices[optimalChoiceKey].sample();
-            const worstReturn = this.state.currentChoices[worstChoiceKey].sample();
-            this.state.optimalWealth.push(this.updateWealthValue(this.state.optimalWealth.at(-1), optimalReturn, choiceType));
-            this.state.worstWealth.push(this.updateWealthValue(this.state.worstWealth.at(-1), worstReturn, choiceType));
-
-            this.state.playerWealth.push(this.state.playerWealth.at(-1));
-
+            this.state.totalTime += (Date.now() - this.state.decayStartTime) / 1000;
             this.state.round++;
             this.startDecayProcess();
             this.nextRound();
         }
 
-        updateWealthValue(base, returnValue, type) {
-            if (type === 'add') return base + returnValue;
-            return base * (returnValue || 1);
-        }
-
         startDecayProcess() {
             if (!this.state.activeDecayChoice) return;
+
             this.state.decayStartTime = Date.now();
-            this.state.decayInterval = setInterval(() => this.updateWealth(), 100);
-        }
+            const decayLoop = () => {
+                const elapsedTime = Date.now() - this.state.decayStartTime;
+                const decayRate = 3000; // ms
+                const decay = Math.max(0, 1 - (elapsedTime / decayRate));
 
-        updateWealth(isFinal = false) {
-            const elapsedTime = Date.now() - this.state.decayStartTime;
-            const decayRate = 3000; // ms
-            const decay = Math.max(0, 1 - (elapsedTime / decayRate));
+                const choice = this.state.activeDecayChoice;
+                const rawSample = choice.sample();
+                let effectiveSample;
 
-            const choice = this.state.activeDecayChoice;
-            if (!choice) return;
+                if (choice.type === 'add') {
+                    effectiveSample = rawSample * decay * (100/1000); // Scale to per-second
+                    this.state.wealth += effectiveSample;
+                } else { // multiply, pdf, cdf
+                    effectiveSample = (rawSample - 1) * decay + 1;
+                    this.state.wealth *= effectiveSample;
+                }
 
-            const rawSample = choice.sample();
-            let effectiveSample;
-
-            if (choice.type === 'add') {
-                effectiveSample = rawSample * decay * 0.1; // Scale down additive bonus
-            } else { // multiply, pdf, cdf
-                effectiveSample = (rawSample - 1) * decay + 1;
-            }
-            
-            const lastIdx = this.state.playerWealth.length - 1;
-            this.state.playerWealth[lastIdx] = this.updateWealthValue(this.state.playerWealth[lastIdx], effectiveSample, choice.type);
-
-            this.DOM.wealthDisplay.textContent = this.state.playerWealth.at(-1).toFixed(2);
-            this.wealthChartInstance.data.labels = Array.from({ length: this.state.playerWealth.length }, (_, i) => i);
-            this.wealthChartInstance.update('none');
-
-            if (isFinal) {
-                this.wealthChartInstance.update();
-            }
+                this.DOM.wealthDisplay.textContent = this.state.wealth.toFixed(2);
+                this.updateWealthChart(elapsedTime / 1000);
+            };
+            this.state.decayInterval = setInterval(decayLoop, 100);
         }
 
         updateDisplay() {
             this.DOM.roundCounter.textContent = this.state.round;
-            this.DOM.wealthDisplay.textContent = this.state.playerWealth.at(-1).toFixed(2);
+            this.DOM.wealthDisplay.textContent = this.state.wealth.toFixed(2);
             this.DOM.streak.textContent = this.state.streak;
 
             if (!this.state.currentChoices) return;
@@ -507,39 +484,48 @@
         }
 
         setupWealthChart() {
-            const labels = Array.from({ length: this.state.playerWealth.length }, (_, i) => i);
             const ctx = this.DOM.wealthChart.getContext('2d');
             this.wealthChartInstance = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Your Wealth', data: this.state.playerWealth, borderColor: '#00aaff', tension: 0.1, pointRadius: 0 },
-                        { label: 'Optimal Wealth', data: this.state.optimalWealth, borderColor: '#00ff7f', tension: 0.1, pointRadius: 0 },
-                        { label: 'Worst Wealth', data: this.state.worstWealth, borderColor: '#ff3366', tension: 0.1, pointRadius: 0 },
-                    ]
+                data: { 
+                    labels: this.wealthHistory.t,
+                    datasets: [{
+                        label: 'Your Wealth',
+                        data: this.wealthHistory.wealth,
+                        borderColor: '#00aaff',
+                        tension: 0.1,
+                        pointRadius: 0
+                    }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    scales: { y: { type: 'logarithmic', ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } } },
-                    plugins: { legend: { labels: { color: 'var(--text-color)' } } }
+                    scales: {
+                        y: { type: 'logarithmic', ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { type: 'linear', title: { display: true, text: 'Time (s)' }, ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
 
+        updateWealthChart(timeElapsedSinceChoice) {
+            const newTime = this.state.totalTime + timeElapsedSinceChoice;
+            this.wealthHistory.t.push(newTime.toFixed(2));
+            this.wealthHistory.wealth.push(this.state.wealth);
+            if (this.wealthHistory.t.length > 300) { // Keep chart from getting too crowded
+                this.wealthHistory.t.shift();
+                this.wealthHistory.wealth.shift();
+            }
+            this.wealthChartInstance.update('none');
+        }
+
         endGame() {
             if (this.state.decayInterval) clearInterval(this.state.decayInterval);
-            const finalPlayerWealth = this.state.playerWealth.at(-1);
-            const finalOptimalWealth = this.state.optimalWealth.at(-1);
-            const finalWorstWealth = this.state.worstWealth.at(-1);
-
+            const finalWealth = this.state.wealth;
             this.gameContainer.innerHTML = `
                 <div class="game-over-screen">
                     <h1>Game Over!</h1>
-                    <h3>Final Wealth:</h3>
-                    <p style="color: #00aaff;">Your Strategy: ${finalPlayerWealth.toFixed(2)}</p>
-                    <p style="color: #00ff7f;">Optimal Strategy: ${finalOptimalWealth.toFixed(2)}</p>
-                    <p style="color: #ff3366;">Worst Strategy: ${finalWorstWealth.toFixed(2)}</p>
+                    <h3>Final Wealth: ${finalWealth.toFixed(2)}</h3>
                     <br>
                     <button id="play-again">Play Again</button>
                 </div>
