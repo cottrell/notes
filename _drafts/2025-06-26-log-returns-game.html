@@ -101,6 +101,12 @@
             border-radius: 5px;
             background: #222;
         }
+        .stock-chart {
+            width: 100%;
+            height: 150px;
+            border-radius: 5px;
+            background: #222;
+        }
         .choice-text-display {
             font-size: 3em;
             font-weight: bold;
@@ -223,14 +229,29 @@
         </div>
     `;
 
+    // Game timing/scaling constants
+    const TICK_MS = 100;
+    const DECAY_MS = 3000;
+    // Compresses one "market year" into this many real seconds of game time
+    const GAME_SECONDS_PER_YEAR = 90; // even calmer, smoother pacing
+    const INITIAL_WEALTH = 1000;
+
     class ChoiceFactory {
+        // Helper to generate a random normal using Box-Muller
+        #randn() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
         generateMultiplierPdfChoice() {
-            const n = 100, xMin = Math.log(0.1), xMax = Math.log(4);
+            // x axis is log-returns (log multipliers) per second of game-time
+            const n = 100, xMin = -0.03, xMax = 0.03; // narrow, stable per-second range
             const xs = Array.from({ length: n }, (_, i) => xMin + (i / (n - 1)) * (xMax - xMin));
-            const mode = Math.floor(Math.random() * (n * 0.6)) + n * 0.2;
+            const mode = Math.floor(Math.random() * (n * 0.6)) + Math.floor(n * 0.2);
             let ps = Array.from({ length: n }, (_, i) => {
                 const dist = Math.abs(i - mode);
-                return Math.exp(-Math.pow(dist / (n * 0.1), 2));
+                return Math.exp(-Math.pow(dist / (n * 0.12), 2));
             });
             const area = ps.reduce((sum, p, i) => {
                 if (i === 0) return 0;
@@ -254,16 +275,40 @@
             }
             const maxCdf = cdfPoints.at(-1);
             const normalizedCdf = cdfPoints.map(p => p / maxCdf);
-            const sample = () => Math.exp(xs[normalizedCdf.findIndex(p => Math.random() <= p)]);
+            const sample = () => Math.exp(xs[normalizedCdf.findIndex(p => Math.random() <= p)]); // per-second multiplier
             return { type: 'pdf', xs, ps: normPs, cdf: normalizedCdf, sample, getExpectedLogReturn: computeLogReturn, display: 'PDF' };
         }
+        generateEmpiricalStockChoice() {
+            // Generate a synthetic stock path (GBM-like), then sample returns empirically
+            const steps = 200;
+            const startPrice = 100;
+            // Annualized drift/vol, then convert to per-game-second using GAME_SECONDS_PER_YEAR
+            const muAnnual = 0.05 + Math.random() * 0.04; // [5%, 9%]
+            const sigmaAnnual = 0.12 + Math.random() * 0.08; // [12%, 20%]
+            const dtSec = 1 / GAME_SECONDS_PER_YEAR; // one game-second is 1/60th of a year
+            const prices = [startPrice];
+            const logReturns = [];
+            const multipliers = [];
+            for (let i = 0; i < steps; i++) {
+                const z = this.#randn();
+                const lr = (muAnnual - 0.5 * sigmaAnnual * sigmaAnnual) * dtSec + sigmaAnnual * Math.sqrt(dtSec) * z; // per-second log-return
+                const mult = Math.exp(lr);
+                const next = prices[prices.length - 1] * mult;
+                prices.push(next);
+                logReturns.push(lr);
+                multipliers.push(mult);
+            }
+            const avgLogRet = logReturns.reduce((a,b)=>a+b,0) / logReturns.length;
+            const sample = () => multipliers[Math.floor(Math.random() * multipliers.length)]; // per-second multiplier
+            return { type: 'empirical', prices, logReturns, multipliers, muAnnual, sigmaAnnual, sample, getExpectedLogReturn: () => avgLogRet, display: 'Stock' };
+        }
         generateAdditionChoice() {
-            const value = Math.floor(Math.random() * 100) + 1;
+            const value = Math.floor(Math.random() * 13) + 3; // +3..+15
             return { type: 'add', value, display: `+${value}`, sample: () => value, getExpectedLogReturn: () => value };
         }
         generateSimpleMultiplierChoice() {
-            const value = 1 + Math.random();
-            return { type: 'multiply', value, display: `x${value.toFixed(2)}`, sample: () => value, getExpectedLogReturn: () => Math.log(value) };
+            const value = 0.995 + Math.random() * 0.01; // [0.995, 1.005] per-second multiplier
+            return { type: 'multiply', value, display: `x${value.toFixed(3)}`, sample: () => value, getExpectedLogReturn: () => Math.log(value) };
         }
     }
 
@@ -274,6 +319,13 @@
             this.choiceFactory = new ChoiceFactory();
             this.wealthChartInstance = null;
             this.state = {};
+            // One-time key handler to avoid duplicates across restarts
+            this.boundKeydown = (e) => {
+                if (!this.DOM) return;
+                if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') this.selectOption('A');
+                if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') this.selectOption('B');
+            };
+            document.addEventListener('keydown', this.boundKeydown);
             this.loadDependencies();
         }
 
@@ -318,14 +370,15 @@
             this.state = {
                 round: 1,
                 streak: 0,
-                wealth: 1,
+                wealth: INITIAL_WEALTH,
                 currentChoices: null,
                 activeDecayChoice: null,
+                activeAddRate: null,
                 decayInterval: null,
-                decayStartTime: 0,
+                decayStartTime: Date.now(),
                 totalTime: 0,
             };
-            this.wealthHistory = { t: [0], wealth: [1] };
+            this.wealthHistory = [{ x: 0, y: INITIAL_WEALTH }];
             if (this.wealthChartInstance) this.wealthChartInstance.destroy();
             this.setupWealthChart();
             this.addEventListeners();
@@ -335,10 +388,6 @@
         addEventListeners() {
             this.DOM.optionA.addEventListener('click', () => this.selectOption('A'));
             this.DOM.optionB.addEventListener('click', () => this.selectOption('B'));
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') this.selectOption('A');
-                if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') this.selectOption('B');
-            });
             this.DOM.aboutButton.addEventListener('click', () => this.DOM.aboutModal.classList.remove('hidden'));
             this.DOM.closeAboutModal.addEventListener('click', () => this.DOM.aboutModal.classList.add('hidden'));
         }
@@ -360,12 +409,21 @@
             this.state.activeDecayChoice = selectedChoice;
             this.DOM.activeBonusText.textContent = selectedChoice.display;
 
+            if (selectedChoice.type === 'add') {
+                // Choose an add rate per second (gentle scaling)
+                this.state.activeAddRate = selectedChoice.value / 3; // units per second, calmer
+            } else {
+                this.state.activeAddRate = null;
+            }
+
             const { A, B } = this.state.currentChoices;
             const optimalChoiceKey = A.getExpectedLogReturn() > B.getExpectedLogReturn() ? 'A' : 'B';
             if (optionKey === optimalChoiceKey) this.state.streak++;
             else this.state.streak = 0;
 
-            this.state.totalTime += (Date.now() - this.state.decayStartTime) / 1000;
+            if (this.state.decayStartTime) {
+                this.state.totalTime += (Date.now() - this.state.decayStartTime) / 1000;
+            }
             this.state.round++;
             this.startDecayProcess();
             this.nextRound();
@@ -376,26 +434,39 @@
 
             this.state.decayStartTime = Date.now();
             const decayLoop = () => {
-                const elapsedTime = Date.now() - this.state.decayStartTime;
-                const decayRate = 3000; // ms
-                const decay = Math.max(0, 1 - (elapsedTime / decayRate));
+                const now = Date.now();
+                const elapsedTime = now - this.state.decayStartTime;
+                const decay = Math.max(0, 1 - (elapsedTime / DECAY_MS));
+                const dt = TICK_MS / 1000;
 
-                const choice = this.state.activeDecayChoice;
-                const rawSample = choice.sample();
-                let effectiveSample;
-
-                if (choice.type === 'add') {
-                    effectiveSample = rawSample * decay * (100/1000); // Scale to per-second
-                    this.state.wealth += effectiveSample;
-                } else { // multiply, pdf, cdf
-                    effectiveSample = (rawSample - 1) * decay + 1;
-                    this.state.wealth *= effectiveSample;
+                if (this.state.activeAddRate != null) {
+                    // Additive: add rate per second scaled by remaining decay
+                    const delta = this.state.activeAddRate * decay * dt;
+                    this.state.wealth += delta;
+                } else {
+                    // Multiplicative-style choices: sample per-second multiplier each tick,
+                    // convert to per-dt using log-return scaling, and apply decay.
+                    const m = this.state.activeDecayChoice.sample(); // per-second multiplier
+                    let logR = Math.log(m);
+                    // Safety clamp on logR to avoid rare blow-ups
+                    const CLAMP = 0.01; // calm per-second cap on log-returns
+                    if (logR > CLAMP) logR = CLAMP;
+                    if (logR < -CLAMP) logR = -CLAMP;
+                    const mult = Math.exp(logR * decay * dt);
+                    this.state.wealth *= mult;
                 }
 
                 this.DOM.wealthDisplay.textContent = this.state.wealth.toFixed(2);
                 this.updateWealthChart(elapsedTime / 1000);
+
+                if (elapsedTime >= DECAY_MS) {
+                    clearInterval(this.state.decayInterval);
+                    this.state.decayInterval = null;
+                    this.state.activeDecayChoice = null;
+                    this.state.activeAddRate = null;
+                }
             };
-            this.state.decayInterval = setInterval(decayLoop, 100);
+            this.state.decayInterval = setInterval(decayLoop, TICK_MS);
         }
 
         updateDisplay() {
@@ -416,6 +487,11 @@
                     textEl.classList.add('hidden');
                     this.drawDistribution(chartEl, option);
                     logReturnEl.textContent = `E[log(R)] = ${option.getExpectedLogReturn().toFixed(3)}`;
+                } else if (option.type === 'empirical') {
+                    chartEl.classList.remove('hidden');
+                    textEl.classList.add('hidden');
+                    this.drawStockSeries(chartEl, option);
+                    logReturnEl.textContent = `Empirical E[log(R)] = ${option.getExpectedLogReturn().toFixed(3)}`;
                 } else {
                     chartEl.classList.add('hidden');
                     textEl.classList.remove('hidden');
@@ -428,7 +504,7 @@
         }
 
         generateChoicePair() {
-            const choiceTypes = ['pdf', 'add', 'multiply', 'cdf'];
+            const choiceTypes = ['pdf', 'add', 'multiply', 'cdf', 'empirical'];
             const selectedType = choiceTypes[Math.floor(Math.random() * choiceTypes.length)];
             let choiceA, choiceB;
             if (selectedType === 'pdf' || selectedType === 'cdf') {
@@ -438,6 +514,9 @@
                     choiceA.type = 'cdf';
                     choiceB.type = 'cdf';
                 }
+            } else if (selectedType === 'empirical') {
+                choiceA = this.choiceFactory.generateEmpiricalStockChoice();
+                choiceB = this.choiceFactory.generateEmpiricalStockChoice();
             } else if (selectedType === 'add') {
                 choiceA = this.choiceFactory.generateAdditionChoice();
                 choiceB = this.choiceFactory.generateAdditionChoice();
@@ -451,6 +530,7 @@
 
         drawDistribution(canvas, distribution) {
             const ctx = canvas.getContext('2d');
+            this.syncCanvasSize(canvas);
             const { width, height } = canvas;
             ctx.clearRect(0, 0, width, height);
             const { xs, ps, cdf, type } = distribution;
@@ -461,7 +541,7 @@
             const maxVal = type === 'cdf' ? 1 : Math.max(...ps);
             const minXs = xs[0], maxXs = xs.at(-1);
             ctx.beginPath();
-            ctx.strokeStyle = type === 'cdf' ? 'var(--secondary-color)' : 'var(--primary-color)';
+            ctx.strokeStyle = type === 'cdf' ? this.getCssVar('--secondary-color') : this.getCssVar('--primary-color');
             ctx.lineWidth = 2;
             for (let i = 0; i < xs.length; i++) {
                 const x = margin.left + ((xs[i] - minXs) / (maxXs - minXs)) * plotWidth;
@@ -472,7 +552,7 @@
             ctx.stroke();
             if (minXs < 0 && maxXs > 0) {
                 const breakEvenX = margin.left + (-minXs / (maxXs - minXs)) * plotWidth;
-                ctx.strokeStyle = 'var(--error-color)';
+                ctx.strokeStyle = this.getCssVar('--error-color');
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
                 ctx.beginPath();
@@ -483,25 +563,59 @@
             }
         }
 
+        drawStockSeries(canvas, stockChoice) {
+            const ctx = canvas.getContext('2d');
+            this.syncCanvasSize(canvas);
+            const { width, height } = canvas;
+            ctx.clearRect(0, 0, width, height);
+            const { prices } = stockChoice;
+            const margin = { top: 10, right: 10, bottom: 20, left: 10 };
+            const plotWidth = width - margin.left - margin.right;
+            const plotHeight = height - margin.top - margin.bottom;
+            const minP = Math.min(...prices);
+            const maxP = Math.max(...prices);
+            ctx.beginPath();
+            ctx.strokeStyle = this.getCssVar('--primary-color');
+            ctx.lineWidth = 2;
+            for (let i = 0; i < prices.length; i++) {
+                const x = margin.left + (i / (prices.length - 1)) * plotWidth;
+                const y = height - margin.bottom - ((prices[i] - minP) / (maxP - minP || 1)) * plotHeight;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        getCssVar(varName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || '#fff';
+        }
+
+        syncCanvasSize(canvas) {
+            const w = canvas.clientWidth || canvas.offsetWidth || 300;
+            const h = canvas.clientHeight || canvas.offsetHeight || 150;
+            if (canvas.width !== w) canvas.width = w;
+            if (canvas.height !== h) canvas.height = h;
+        }
+
         setupWealthChart() {
             const ctx = this.DOM.wealthChart.getContext('2d');
+            const textColor = this.getCssVar('--text-color');
             this.wealthChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { 
-                    labels: this.wealthHistory.t,
                     datasets: [{
                         label: 'Your Wealth',
-                        data: this.wealthHistory.wealth,
+                        data: this.wealthHistory,
                         borderColor: '#00aaff',
                         tension: 0.1,
-                        pointRadius: 0
+                        pointRadius: 0,
+                        parsing: false
                     }]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     scales: {
-                        y: { type: 'logarithmic', ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } },
-                        x: { type: 'linear', title: { display: true, text: 'Time (s)' }, ticks: { color: 'var(--text-color)' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+                        y: { type: 'logarithmic', ticks: { color: textColor }, grid: { color: 'rgba(255,255,255,0.1)' } },
+                        x: { type: 'linear', title: { display: true, text: 'Time (s)' }, ticks: { color: textColor }, grid: { color: 'rgba(255,255,255,0.1)' } }
                     },
                     plugins: { legend: { display: false } }
                 }
@@ -510,12 +624,8 @@
 
         updateWealthChart(timeElapsedSinceChoice) {
             const newTime = this.state.totalTime + timeElapsedSinceChoice;
-            this.wealthHistory.t.push(newTime.toFixed(2));
-            this.wealthHistory.wealth.push(this.state.wealth);
-            if (this.wealthHistory.t.length > 300) { // Keep chart from getting too crowded
-                this.wealthHistory.t.shift();
-                this.wealthHistory.wealth.shift();
-            }
+            this.wealthHistory.push({ x: +newTime.toFixed(2), y: this.state.wealth });
+            if (this.wealthHistory.length > 300) this.wealthHistory.shift();
             this.wealthChartInstance.update('none');
         }
 
