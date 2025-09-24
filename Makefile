@@ -11,7 +11,7 @@ dev:
 	bundle exec jekyll serve --baseurl="" --watch --livereload --drafts --host=0.0.0.0
 
 serve:
-	bundle exec jekyll serve --baseurl="" --watch --livereload --host=0.0.0.0
+	bundle exec jekyll serve --baseurl="" --watch --livereload --drafts --host=0.0.0.0
 
 build:
 	bundle exec jekyll build
