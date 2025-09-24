@@ -132,7 +132,6 @@ const gameStatus = document.getElementById('gameStatus');
 // Relativistic physics constants (scaled for game)
 const c = 200;           // Speed of light (game units)
 const G = 50;            // Gravitational constant (game units)
-const PLANCK_SCALE = 1;  // Planck scale for quantum effects
 
 // Game state
 let gameState = {
@@ -151,7 +150,9 @@ let gameState = {
     planetsMoving: true, // whether planets move or are static
     temporalFrame: 'lab', // 'lab' or 'ball' - which temporal reference frame
     maxBalls: 10, // Maximum concurrent balls
-    shotCount: 0 // Total shots fired
+    shotCount: 0, // Total shots fired
+    autoResetDelay: 1000, // Delay before auto-reset in milliseconds
+    stars: [] // Precomputed starfield
 };
 
 // Initialize audio
@@ -237,8 +238,7 @@ class Ball {
         const properDt = dt / gamma;
         
         // Calculate spacetime curvature effects from all planets
-        let fx = 0, fy = 0;
-        let totalTimeDistortion = 0;
+        let ax = 0, ay = 0; // acceleration components
         
         for (let planet of gameState.planets) {
             const dx = planet.x - this.x;
@@ -256,7 +256,7 @@ class Ball {
             const rs = 2 * G * planet.mass / (c * c);
             
             // Relativistic gravitational acceleration (geodesic equation)
-            const classicalForce = G * planet.mass / (minR * minR);
+            const classicalAccel = G * planet.mass / (minR * minR);
             
             // Relativistic corrections:
             // 1. Velocity-dependent terms (frame dragging)
@@ -265,24 +265,20 @@ class Ball {
             // 2. Post-Newtonian corrections (1PN)
             const pnCorrection = 1 + rs / minR + v * v / (c * c);
             
-            // 3. Strong field effects near event horizon
-            const strongFieldFactor = 1 / Math.sqrt(Math.max(1 - rs / minR, 0.01));
+            // 3. Strong field effects near event horizon (clamped to prevent NaN)
+            const strongFieldFactor = Math.min(1 / Math.sqrt(Math.max(1 - rs / minR, 0.01)), 10);
             
-            const relativisticForce = classicalForce * velocityCorrection * pnCorrection * strongFieldFactor;
+            const relativisticAccel = classicalAccel * velocityCorrection * pnCorrection * strongFieldFactor;
             
             const angle = Math.atan2(dy, dx);
-            fx += relativisticForce * Math.cos(angle);
-            fy += relativisticForce * Math.sin(angle);
-            
-            // Gravitational time dilation effect
-            const gravitationalTimeDilation = Math.sqrt(Math.max(1 - rs / minR, 0.01));
-            totalTimeDistortion += (1 - gravitationalTimeDilation) * planet.mass / 10000;
+            ax += relativisticAccel * Math.cos(angle);
+            ay += relativisticAccel * Math.sin(angle);
         }
         
         // Relativistic momentum update: dp/dt = F where p = γmv
         // Acceleration becomes harder at high speeds due to relativistic mass
-        this.vx += fx * dt / (gamma * this.mass);
-        this.vy += fy * dt / (gamma * this.mass);
+        this.vx += ax * dt / gamma;
+        this.vy += ay * dt / gamma;
         
         // Enforce speed limit with proper relativistic behavior
         const newV = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
@@ -344,9 +340,16 @@ class Ball {
     }
     
     handleCollision(planet) {
-        gameState.gameLost = true;
-        playSound('crash');
-        gameStatus.textContent = "Ball crashed into a planet! Click Reset to try again.";
+        if (!gameState.gameLost && !gameState.gameWon) {
+            gameState.gameLost = true;
+            this.launched = false;
+            playSound('crash');
+            gameStatus.textContent = "Ball crashed into a planet! Resetting...";
+            // Auto-reset after a short delay
+            setTimeout(() => {
+                resetGame();
+            }, Math.max(500, gameState.autoResetDelay / gameState.simSpeed));
+        }
     }
     
     draw() {
@@ -592,11 +595,26 @@ class Target {
     }
 }
 
+// Initialize starfield
+function initStarfield() {
+    gameState.stars = [];
+    for (let i = 0; i < 100; i++) {
+        gameState.stars.push({
+            x: (i * 37) % canvas.width,
+            y: (i * 73) % canvas.height,
+            size: Math.random() * 1.5
+        });
+    }
+}
+
 // Initialize game
 function initGame() {
     const ballX = canvas.width * 0.08;
     gameState.startPos = { x: ballX, y: canvas.height / 2 };
     if (!gameState.balls) gameState.balls = [];
+    
+    // Initialize starfield
+    initStarfield();
     
     // Scale everything properly based on canvas size
     const canvasScale = Math.sqrt((canvas.width * canvas.height) / (800 * 600));
@@ -721,11 +739,9 @@ function gameLoop(currentTime) {
     
     // Draw stars
     ctx.fillStyle = '#fff';
-    for (let i = 0; i < 100; i++) {
-        const x = (i * 37) % canvas.width;
-        const y = (i * 73) % canvas.height;
+    for (let star of gameState.stars) {
         ctx.beginPath();
-        ctx.arc(x, y, Math.random() * 1.5, 0, Math.PI * 2);
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.fill();
     }
     
@@ -931,6 +947,10 @@ canvas.addEventListener('click', (e) => {
     
     // Scale the launch velocity based on distance
     const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // Guard against divide-by-zero if click is exactly on start position
+    if (distance < 1) return;
+    
     const maxDistance = 200;
     const velocityScale = Math.min(distance / maxDistance, 1) * 3 + 0.5;
     
@@ -950,11 +970,11 @@ canvas.addEventListener('click', (e) => {
 // Control functions
 function resetGame() {
     // Reset current level
-    const ballX = Math.min(50, canvas.width * 0.1);
-    gameState.ball = new Ball(ballX, canvas.height / 2);
+    gameState.balls = [];
     gameState.gameWon = false;
     gameState.gameLost = false;
-    gameStatus.textContent = "Click anywhere to aim and launch the ball!";
+    gameState.shotCount = 0;
+    gameStatus.textContent = "Click anywhere to launch balls! Rapid fire enabled.";
 }
 
 // Change canvas size
