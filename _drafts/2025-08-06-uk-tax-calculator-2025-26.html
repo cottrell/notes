@@ -1,0 +1,655 @@
+---
+layout: post
+title: "UK Tax Calculator 2025-26"
+description: "Interactive calculator for UK income tax and National Insurance contributions for 2025-26, with pension contribution scenarios and marginal tax rate visualization."
+excerpt: "Calculate your UK tax burden for 2025-26 including income tax, National Insurance, and pension contributions with interactive charts."
+tags: [UK, tax, calculator, finance, pension, SIPP, 2025-26]
+categories: [vibecoding]
+date: 2025-08-06
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Tax Calculator 2025-26</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+
+        .calculator-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: 600;
+            color: #34495e;
+            min-width: 180px;
+        }
+
+        input, select {
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .results-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .tax-breakdown {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+
+        .breakdown-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .breakdown-section h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .breakdown-section .highlight {
+            background: #e8f5e8;
+            padding: 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .chart {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .chart-wrapper {
+            width: 100%;
+            height: 500px;
+        }
+
+        .summary-table {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+
+        .rates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .rate-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .rate-card h4 {
+            margin-top: 0;
+            color: #e74c3c;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>UK Tax Calculator 2025-26</h1>
+    <p>Interactive calculator for UK income tax and National Insurance contributions, with pension contribution scenarios and tax rate visualization.</p>
+
+    <div class="calculator-container">
+        <h2>Tax Calculator</h2>
+        
+        <div class="input-group">
+            <label for="grossIncome">Gross Annual Income (£):</label>
+            <input type="number" id="grossIncome" value="50000" min="0" max="1000000" step="1000">
+        </div>
+        
+        <div class="input-group">
+            <label for="pensionScenario">Pension Contribution:</label>
+            <select id="pensionScenario">
+                <option value="0">No Pension Contribution</option>
+                <option value="max">Maximum SIPP Contribution</option>
+                <option value="custom">Custom Amount</option>
+            </select>
+            <input type="number" id="customPension" value="0" min="0" step="1000" style="display: none;" placeholder="Custom pension amount">
+        </div>
+        
+        <button onclick="updateCalculations()">Calculate</button>
+    </div>
+
+    <div id="results" class="results-container" style="display: none;">
+        <h2>Tax Calculation Results</h2>
+        <div id="taxBreakdown"></div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart">
+            <h3>Marginal Tax Rate</h3>
+            <div id="marginalChart" class="chart-wrapper"></div>
+        </div>
+        <div class="chart">
+            <h3>Net Income After Tax</h3>
+            <div id="netIncomeChart" class="chart-wrapper"></div>
+        </div>
+        <div class="chart">
+            <h3>Net Income Rate per Working Day</h3>
+            <div id="netIncomeRateChart" class="chart-wrapper"></div>
+        </div>
+    </div>
+
+    <div class="summary-table">
+        <h2>Tax Rates Summary 2025-26</h2>
+        <div class="rates-grid">
+            <div class="rate-card">
+                <h4>Income Tax</h4>
+                <p><strong>Personal Allowance:</strong> £12,570<br>
+                <small>(Reduced by £1 for every £2 earned over £100,000)</small></p>
+                <p><strong>Basic Rate:</strong> 20% (£12,571 - £50,270)</p>
+                <p><strong>Higher Rate:</strong> 40% (£50,271 - £125,140)</p>
+                <p><strong>Additional Rate:</strong> 45% (£125,140+)</p>
+            </div>
+            
+            <div class="rate-card" style="border-left-color: #f39c12;">
+                <h4 style="color: #f39c12;">National Insurance</h4>
+                <p><strong>Primary Threshold:</strong> £12,570</p>
+                <p><strong>Main Rate:</strong> 8% (£12,571 - £50,284)</p>
+                <p><strong>Upper Rate:</strong> 2% (£50,284+)</p>
+            </div>
+            
+            <div class="rate-card" style="border-left-color: #27ae60;">
+                <h4 style="color: #27ae60;">SIPP Contributions</h4>
+                <p><strong>Annual Allowance:</strong> £60,000<br>
+                <small>(Or 100% of earnings, whichever is lower)</small></p>
+                <p><strong>Tapered for earnings over:</strong> £260,000</p>
+                <p><strong>Minimum allowance:</strong> £10,000</p>
+                <p><strong>Minimum contribution:</strong> £3,600<br>
+                <small>(Even with no earnings)</small></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const taxData2025 = {
+            year: "2025-26",
+            incomeTax: {
+                personalAllowance: 12570,
+                personalAllowanceReductionStart: 100000,
+                personalAllowanceReductionRate: 0.5,
+                bands: [
+                    { min: 12570, max: 50270, rate: 0.20, name: "Basic Rate" },
+                    { min: 50270, max: 125140, rate: 0.40, name: "Higher Rate" },
+                    { min: 125140, max: Infinity, rate: 0.45, name: "Additional Rate" }
+                ]
+            },
+            nationalInsurance: {
+                primaryThreshold: 12570,
+                upperEarningsLimit: 50284,
+                rates: [
+                    { min: 0, max: 12570, rate: 0.00, name: "Below Primary Threshold" },
+                    { min: 12570, max: 50284, rate: 0.08, name: "Main Rate" },
+                    { min: 50284, max: Infinity, rate: 0.02, name: "Upper Rate" }
+                ]
+            },
+            pension: {
+                annualAllowance: 60000,
+                minimumContribution: 3600,
+                taperedAllowanceStart: 260000,
+                taperedAllowanceMinimum: 10000,
+                taperedRate: 0.5
+            }
+        };
+
+        function calculatePersonalAllowance(grossIncome) {
+            if (grossIncome <= taxData2025.incomeTax.personalAllowanceReductionStart) {
+                return taxData2025.incomeTax.personalAllowance;
+            }
+            
+            const reduction = (grossIncome - taxData2025.incomeTax.personalAllowanceReductionStart) * 
+                             taxData2025.incomeTax.personalAllowanceReductionRate;
+            return Math.max(0, taxData2025.incomeTax.personalAllowance - reduction);
+        }
+
+        function calculateIncomeTax(grossIncome, pensionContribution = 0) {
+            const taxableIncome = Math.max(0, grossIncome - pensionContribution);
+            const personalAllowance = calculatePersonalAllowance(taxableIncome);
+            const taxableAmount = Math.max(0, taxableIncome - personalAllowance);
+            
+            let tax = 0;
+            for (const band of taxData2025.incomeTax.bands) {
+                if (taxableAmount > band.min) {
+                    const taxableInBand = Math.min(taxableAmount, band.max) - band.min;
+                    tax += taxableInBand * band.rate;
+                }
+            }
+            
+            return tax;
+        }
+
+        function calculateNationalInsurance(grossIncome, pensionContribution = 0) {
+            const niableIncome = Math.max(0, grossIncome - pensionContribution);
+            let ni = 0;
+            
+            for (const band of taxData2025.nationalInsurance.rates) {
+                if (niableIncome > band.min) {
+                    const niableInBand = Math.min(niableIncome, band.max) - band.min;
+                    ni += niableInBand * band.rate;
+                }
+            }
+            
+            return ni;
+        }
+
+        function calculateMaxPensionContribution(grossIncome) {
+            let allowance = taxData2025.pension.annualAllowance;
+            
+            if (grossIncome > taxData2025.pension.taperedAllowanceStart) {
+                const reduction = (grossIncome - taxData2025.pension.taperedAllowanceStart) * 
+                                 taxData2025.pension.taperedRate;
+                allowance = Math.max(taxData2025.pension.taperedAllowanceMinimum, allowance - reduction);
+            }
+            
+            return Math.min(allowance, Math.max(grossIncome, taxData2025.pension.minimumContribution));
+        }
+
+        function calculateTotalTax(grossIncome, pensionContribution = 0) {
+            const incomeTax = calculateIncomeTax(grossIncome, pensionContribution);
+            const nationalInsurance = calculateNationalInsurance(grossIncome, pensionContribution);
+            
+            return {
+                incomeTax,
+                nationalInsurance,
+                total: incomeTax + nationalInsurance,
+                netIncome: grossIncome - incomeTax - nationalInsurance - pensionContribution,
+                effectiveRate: (incomeTax + nationalInsurance) / grossIncome
+            };
+        }
+
+        function calculateMarginalRate(grossIncome, pensionContribution = 0) {
+            const increment = 100;
+            const current = calculateTotalTax(grossIncome, pensionContribution);
+            const higher = calculateTotalTax(grossIncome + increment, pensionContribution);
+            
+            return (higher.total - current.total) / increment;
+        }
+
+        let marginalChart, netIncomeChart, netIncomeRateChart;
+
+        function updateCalculations() {
+            const grossIncome = parseInt(document.getElementById('grossIncome').value) || 0;
+            const pensionScenario = document.getElementById('pensionScenario').value;
+            
+            let pensionContribution = 0;
+            if (pensionScenario === 'max') {
+                pensionContribution = calculateMaxPensionContribution(grossIncome);
+            } else if (pensionScenario === 'custom') {
+                pensionContribution = parseInt(document.getElementById('customPension').value) || 0;
+            }
+            
+            document.getElementById('results').style.display = 'block';
+            
+            const noPension = calculateTotalTax(grossIncome, 0);
+            const withPension = calculateTotalTax(grossIncome, pensionContribution);
+            const marginalRate = calculateMarginalRate(grossIncome, pensionContribution);
+            
+            const breakdown = document.getElementById('taxBreakdown');
+            breakdown.innerHTML = `
+                <div class="tax-breakdown">
+                    <div class="breakdown-section">
+                        <h4>Without Pension Contribution</h4>
+                        <p><strong>Income Tax:</strong> £${noPension.incomeTax.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>National Insurance:</strong> £${noPension.nationalInsurance.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Total Tax:</strong> £${noPension.total.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Net Income:</strong> £${noPension.netIncome.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Effective Rate:</strong> ${(noPension.effectiveRate * 100).toFixed(1)}%</p>
+                    </div>
+                    <div class="breakdown-section">
+                        <h4>With £${pensionContribution.toLocaleString()} Pension</h4>
+                        <p><strong>Income Tax:</strong> £${withPension.incomeTax.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>National Insurance:</strong> £${withPension.nationalInsurance.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Total Tax:</strong> £${withPension.total.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Net Income:</strong> £${withPension.netIncome.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                        <p><strong>Effective Rate:</strong> ${(withPension.effectiveRate * 100).toFixed(1)}%</p>
+                        <div class="highlight">Tax Saved: £${(noPension.total - withPension.total).toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                    </div>
+                </div>
+                <p><strong>Current Marginal Tax Rate: ${(marginalRate * 100).toFixed(1)}%</strong></p>
+            `;
+            
+            generateCharts();
+        }
+
+        function generateCharts() {
+            const incomes = [];
+            const marginalRates = [];
+            const netIncomesNoPension = [];
+            const netIncomesMaxPension = [];
+            
+            for (let income = 0; income <= 400000; income += 2000) {
+                incomes.push(income);
+                
+                const noPensionCalc = calculateTotalTax(income, 0);
+                const maxPensionContrib = calculateMaxPensionContribution(income);
+                const maxPensionCalc = calculateTotalTax(income, maxPensionContrib);
+                
+                marginalRates.push(calculateMarginalRate(income, 0) * 100);
+                netIncomesNoPension.push(noPensionCalc.netIncome);
+                netIncomesMaxPension.push(maxPensionCalc.netIncome);
+            }
+            
+            updateMarginalChart(incomes, marginalRates);
+            updateNetIncomeChart(incomes, netIncomesNoPension, netIncomesMaxPension);
+            updateNetIncomeRateChart();
+        }
+
+        function updateMarginalChart(incomes, marginalRates) {
+            const chartDom = document.getElementById('marginalChart');
+            if (!marginalChart) {
+                marginalChart = echarts.init(chartDom);
+            }
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const income = params[0].axisValue;
+                        const rate = params[0].value;
+                        return `Income: £${income.toLocaleString()}<br>Marginal Rate: ${rate.toFixed(1)}%`;
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: incomes.map(i => i.toLocaleString()),
+                    axisLabel: {
+                        formatter: function(value, index) {
+                            return index % 25 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Marginal Tax Rate (%)',
+                    min: 0,
+                    max: 70
+                },
+                series: [{
+                    data: marginalRates,
+                    type: 'line',
+                    smooth: true,
+                    lineStyle: { width: 3 },
+                    itemStyle: { color: '#e74c3c' }
+                }],
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                }
+            };
+            
+            marginalChart.setOption(option);
+        }
+
+        function updateNetIncomeChart(incomes, netNoPension, netMaxPension) {
+            const chartDom = document.getElementById('netIncomeChart');
+            if (!netIncomeChart) {
+                netIncomeChart = echarts.init(chartDom);
+            }
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const income = params[0].axisValue;
+                        let result = `Gross: £${income.toLocaleString()}<br>`;
+                        params.forEach(param => {
+                            result += `${param.seriesName}: £${param.value.toLocaleString()}<br>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['No Pension', 'Max SIPP Contribution'],
+                    bottom: 5
+                },
+                xAxis: {
+                    type: 'category',
+                    data: incomes.map(i => i.toLocaleString()),
+                    axisLabel: {
+                        formatter: function(value, index) {
+                            return index % 25 === 0 ? `£${(incomes[index] / 1000).toFixed(0)}k` : '';
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Net Income (£)',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return `£${(value / 1000).toFixed(0)}k`;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: 'No Pension',
+                        data: netNoPension,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#3498db' }
+                    },
+                    {
+                        name: 'Max SIPP Contribution',
+                        data: netMaxPension,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#2ecc71' }
+                    }
+                ],
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                }
+            };
+            
+            netIncomeChart.setOption(option);
+        }
+
+        function updateNetIncomeRateChart() {
+            const fullTimeIncome = parseInt(document.getElementById('grossIncome').value) || 50000;
+            const workingDaysPerYear = 365 - 104 - 28; // 365 days - weekends - holidays = 233 working days
+            
+            const partTimeData = [];
+            const noPensionRates = [];
+            const maxPensionRates = [];
+            
+            // Calculate for 1, 2, 3, 4, 5 days per week (20%, 40%, 60%, 80%, 100%)
+            for (let daysPerWeek = 1; daysPerWeek <= 5; daysPerWeek++) {
+                const percentFullTime = (daysPerWeek / 5) * 100;
+                const actualIncome = fullTimeIncome * (daysPerWeek / 5);
+                const actualWorkingDays = workingDaysPerYear * (daysPerWeek / 5);
+                
+                // No pension scenario
+                const noPensionCalc = calculateTotalTax(actualIncome, 0);
+                const noPensionRatePerDay = noPensionCalc.netIncome / actualWorkingDays;
+                
+                // Max pension scenario (include SIPP contribution as net income)
+                const maxPensionContrib = calculateMaxPensionContribution(actualIncome);
+                const maxPensionCalc = calculateTotalTax(actualIncome, maxPensionContrib);
+                const maxPensionNetIncluding = maxPensionCalc.netIncome + maxPensionContrib;
+                const maxPensionRatePerDay = maxPensionNetIncluding / actualWorkingDays;
+                
+                partTimeData.push(percentFullTime);
+                noPensionRates.push(noPensionRatePerDay);
+                maxPensionRates.push(maxPensionRatePerDay);
+            }
+            
+            const chartDom = document.getElementById('netIncomeRateChart');
+            if (!netIncomeRateChart) {
+                netIncomeRateChart = echarts.init(chartDom);
+            }
+            
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const percent = params[0].axisValue;
+                        let result = `Working ${percent}% of full time<br>`;
+                        params.forEach(param => {
+                            result += `${param.seriesName}: £${param.value.toFixed(0)} per day<br>`;
+                        });
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['No Pension', 'Max SIPP Contribution'],
+                    bottom: 5
+                },
+                xAxis: {
+                    type: 'category',
+                    data: partTimeData.map(p => `${p}%`),
+                    name: '% of Full Time'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Net Income per Working Day (£)',
+                    axisLabel: {
+                        formatter: function(value) {
+                            return `£${value.toFixed(0)}`;
+                        }
+                    }
+                },
+                series: [
+                    {
+                        name: 'No Pension',
+                        data: noPensionRates,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#3498db' },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: 'Peak Rate'}
+                            ]
+                        }
+                    },
+                    {
+                        name: 'Max SIPP Contribution',
+                        data: maxPensionRates,
+                        type: 'line',
+                        smooth: true,
+                        lineStyle: { width: 3 },
+                        itemStyle: { color: '#2ecc71' },
+                        markPoint: {
+                            data: [
+                                {type: 'max', name: 'Peak Rate'}
+                            ]
+                        }
+                    }
+                ],
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '15%'
+                }
+            };
+            
+            netIncomeRateChart.setOption(option);
+        }
+
+        document.getElementById('pensionScenario').addEventListener('change', function() {
+            const customPension = document.getElementById('customPension');
+            if (this.value === 'custom') {
+                customPension.style.display = 'inline';
+            } else {
+                customPension.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCalculations();
+        });
+
+        window.addEventListener('resize', function() {
+            if (marginalChart) marginalChart.resize();
+            if (netIncomeChart) netIncomeChart.resize();
+            if (netIncomeRateChart) netIncomeRateChart.resize();
+        });
+    </script>
+</body>
+</html>
