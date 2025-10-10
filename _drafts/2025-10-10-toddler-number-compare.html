@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toddler Number Compare</title>
+    <title>Number Compare</title>
     <style>
         :root {
             --bg-color: #ff9a9e;
@@ -32,6 +32,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            transition: background 3s ease;
         }
 
         .game-container {
@@ -156,10 +157,13 @@
             pointer-events: none;
         }
 
+        .symbol {
+            font-size: 100px;
+            line-height: 1;
+        }
+
         .label {
-            font-size: 24px;
-            margin-top: 10px;
-            font-weight: normal;
+            font-size: 16px;
         }
 
         .settings-panel {
@@ -202,8 +206,72 @@
             transition: background 0.3s ease;
         }
 
-        .settings-panel button:hover {
+        .numbers-toggle {
             background: var(--btn-correct);
+            color: var(--btn-text);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .numbers-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        .numbers-toggle.active {
+            background: var(--btn-correct);
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        .numbers-toggle.inactive {
+            background: #95a5a6;
+            color: #7f8c8d;
+            box-shadow: 0 2px 8px rgba(127, 140, 141, 0.3);
+        }
+
+        .numbers-toggle.inactive:hover {
+            background: #7f8c8d;
+        }
+
+        .objects-toggle {
+            background: var(--btn-correct);
+            color: var(--btn-text);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .objects-toggle:hover {
+            transform: scale(1.05);
+        }
+
+        .objects-toggle.active {
+            background: var(--btn-correct);
+            box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+        }
+
+        .objects-toggle.inactive {
+            background: #95a5a6;
+            color: #7f8c8d;
+            box-shadow: 0 2px 8px rgba(127, 140, 141, 0.3);
+        }
+
+        .objects-toggle.inactive:hover {
+            background: #7f8c8d;
         }
 
         .stats {
@@ -268,12 +336,17 @@
                 font-size: 40px;
             }
 
-            .label {
-                font-size: 18px;
+            .symbol {
+                font-size: 70px;
             }
 
-            .title {
-                font-size: 2em;
+            .label {
+                font-size: 12px;
+            }
+
+            .numbers-toggle, .objects-toggle {
+                font-size: 12px;
+                padding: 8px 12px;
             }
         }
     </style>
@@ -314,7 +387,8 @@
         <div class="settings-panel">
             <label>Min: <input type="number" id="min-num" value="1" min="0" max="99"></label>
             <label>Max: <input type="number" id="max-num" value="10" min="1" max="100"></label>
-            <label><input type="checkbox" id="show-objects" checked> Show Objects</label>
+            <button id="toggle-numbers-btn" class="numbers-toggle active">🔢 Numbers ON</button>
+            <button id="toggle-objects-btn" class="objects-toggle active">👁️ Objects ON</button>
             <button id="new-round-btn">New Round</button>
         </div>
 
@@ -326,14 +400,19 @@
             constructor() {
                 this.minNum = 1;
                 this.maxNum = 10;
+                this.showNumbers = true;
                 this.showObjects = true;
                 this.correctCount = 0;
                 this.totalCount = 0;
                 this.currentObjectTheme = this.getRandomObjectTheme();
+                this.generateRandomBackground();
                 this.initializeElements();
                 this.setupEventListeners();
+                this.updateNumbersButton();
+                this.updateObjectsButton();
                 this.newRound();
                 this.updateStats();
+                this.startBackgroundTransition();
             }
 
             initializeElements() {
@@ -346,7 +425,8 @@
                 this.greaterBtn = document.getElementById('greater-btn');
                 this.minInput = document.getElementById('min-num');
                 this.maxInput = document.getElementById('max-num');
-                this.showObjectsCheckbox = document.getElementById('show-objects');
+                this.toggleNumbersBtn = document.getElementById('toggle-numbers-btn');
+                this.toggleObjectsBtn = document.getElementById('toggle-objects-btn');
                 this.newRoundBtn = document.getElementById('new-round-btn');
                 this.statsEl = document.getElementById('stats');
             }
@@ -358,7 +438,8 @@
 
                 this.minInput.addEventListener('change', () => this.updateSettings());
                 this.maxInput.addEventListener('change', () => this.updateSettings());
-                this.showObjectsCheckbox.addEventListener('change', () => this.toggleObjects());
+                this.toggleNumbersBtn.addEventListener('click', () => this.toggleNumbers());
+                this.toggleObjectsBtn.addEventListener('click', () => this.toggleObjects());
                 this.newRoundBtn.addEventListener('click', () => this.newRound());
 
                 // Prevent text selection on buttons
@@ -408,9 +489,40 @@
                 container.innerHTML = objectsHtml;
             }
 
-            toggleObjects() {
-                this.showObjects = this.showObjectsCheckbox.checked;
+            toggleNumbers() {
+                this.showNumbers = !this.showNumbers;
+                this.updateNumbersButton();
                 this.newRound(); // Refresh display
+            }
+
+            updateNumbersButton() {
+                if (this.showNumbers) {
+                    this.toggleNumbersBtn.textContent = '🔢 Numbers ON';
+                    this.toggleNumbersBtn.classList.remove('inactive');
+                    this.toggleNumbersBtn.classList.add('active');
+                } else {
+                    this.toggleNumbersBtn.textContent = '🚫 Numbers OFF';
+                    this.toggleNumbersBtn.classList.remove('active');
+                    this.toggleNumbersBtn.classList.add('inactive');
+                }
+            }
+
+            toggleObjects() {
+                this.showObjects = !this.showObjects;
+                this.updateObjectsButton();
+                this.newRound(); // Refresh display
+            }
+
+            updateObjectsButton() {
+                if (this.showObjects) {
+                    this.toggleObjectsBtn.textContent = '👁️ Objects ON';
+                    this.toggleObjectsBtn.classList.remove('inactive');
+                    this.toggleObjectsBtn.classList.add('active');
+                } else {
+                    this.toggleObjectsBtn.textContent = '🙈 Objects OFF';
+                    this.toggleObjectsBtn.classList.remove('active');
+                    this.toggleObjectsBtn.classList.add('inactive');
+                }
             }
 
             newRound() {
@@ -422,8 +534,13 @@
                 this.currentObjectTheme = this.getRandomObjectTheme();
 
                 // Update display
-                this.number1El.textContent = this.num1;
-                this.number2El.textContent = this.num2;
+                if (this.showNumbers) {
+                    this.number1El.textContent = this.num1;
+                    this.number2El.textContent = this.num2;
+                } else {
+                    this.number1El.textContent = '';
+                    this.number2El.textContent = '';
+                }
                 this.displayObjects(this.num1, this.objects1El);
                 this.displayObjects(this.num2, this.objects2El);
 
@@ -486,6 +603,31 @@
 
             updateStats() {
                 this.statsEl.textContent = `Correct: ${this.correctCount} | Total: ${this.totalCount}`;
+            }
+
+            generateRandomBackground() {
+                // Generate random pastel color using HSL
+                const hue = Math.floor(Math.random() * 360);
+                const saturation = 70 + Math.floor(Math.random() * 20); // 70-90%
+                const lightness = 85 + Math.floor(Math.random() * 10); // 85-95%
+                const color1 = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+                // Generate a complementary pastel color for gradient
+                const hue2 = (hue + 60 + Math.floor(Math.random() * 60)) % 360;
+                const saturation2 = 70 + Math.floor(Math.random() * 20);
+                const lightness2 = 85 + Math.floor(Math.random() * 10);
+                const color2 = `hsl(${hue2}, ${saturation2}%, ${lightness2}%)`;
+
+                // Set the CSS variables
+                document.documentElement.style.setProperty('--bg-gradient',
+                    `linear-gradient(135deg, ${color1} 0%, ${color2} 100%)`);
+            }
+
+            startBackgroundTransition() {
+                // Change background every 45 seconds (not too frequent for battery life)
+                setInterval(() => {
+                    this.generateRandomBackground();
+                }, 45000);
             }
 
             playSound(type) {
