@@ -72,6 +72,30 @@
             border: 4px solid var(--number-border);
             transition: transform 0.3s ease;
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .number-text {
+            font-size: 160px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .objects-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            min-height: 60px;
+            align-items: center;
+        }
+
+        .object-icon {
+            font-size: 40px;
+            line-height: 1;
         }
 
         .number:hover {
@@ -221,9 +245,17 @@
             }
 
             .number {
-                font-size: 100px;
+                font-size: 120px;
                 min-width: 160px;
                 padding: 25px;
+            }
+
+            .number-text {
+                font-size: 120px;
+            }
+
+            .object-icon {
+                font-size: 30px;
             }
 
             .comparison-buttons {
@@ -251,7 +283,10 @@
         <h1 class="title">Toddler Number Compare</h1>
 
         <div class="numbers-display">
-            <div class="number" id="number1">5</div>
+            <div class="number" id="number1">
+                <div class="number-text">5</div>
+                <div class="objects-display" id="objects1"></div>
+            </div>
 
             <div class="comparison-buttons">
                 <button class="compare-btn less-than" id="less-btn">
@@ -270,12 +305,16 @@
                 </button>
             </div>
 
-            <div class="number" id="number2">3</div>
+            <div class="number" id="number2">
+                <div class="number-text">3</div>
+                <div class="objects-display" id="objects2"></div>
+            </div>
         </div>
 
         <div class="settings-panel">
             <label>Min: <input type="number" id="min-num" value="1" min="0" max="99"></label>
             <label>Max: <input type="number" id="max-num" value="10" min="1" max="100"></label>
+            <label><input type="checkbox" id="show-objects" checked> Show Objects</label>
             <button id="new-round-btn">New Round</button>
         </div>
 
@@ -287,8 +326,10 @@
             constructor() {
                 this.minNum = 1;
                 this.maxNum = 10;
+                this.showObjects = true;
                 this.correctCount = 0;
                 this.totalCount = 0;
+                this.currentObjectTheme = this.getRandomObjectTheme();
                 this.initializeElements();
                 this.setupEventListeners();
                 this.newRound();
@@ -296,13 +337,16 @@
             }
 
             initializeElements() {
-                this.number1El = document.getElementById('number1');
-                this.number2El = document.getElementById('number2');
+                this.number1El = document.querySelector('#number1 .number-text');
+                this.number2El = document.querySelector('#number2 .number-text');
+                this.objects1El = document.getElementById('objects1');
+                this.objects2El = document.getElementById('objects2');
                 this.lessBtn = document.getElementById('less-btn');
                 this.equalBtn = document.getElementById('equal-btn');
                 this.greaterBtn = document.getElementById('greater-btn');
                 this.minInput = document.getElementById('min-num');
                 this.maxInput = document.getElementById('max-num');
+                this.showObjectsCheckbox = document.getElementById('show-objects');
                 this.newRoundBtn = document.getElementById('new-round-btn');
                 this.statsEl = document.getElementById('stats');
             }
@@ -314,6 +358,7 @@
 
                 this.minInput.addEventListener('change', () => this.updateSettings());
                 this.maxInput.addEventListener('change', () => this.updateSettings());
+                this.showObjectsCheckbox.addEventListener('change', () => this.toggleObjects());
                 this.newRoundBtn.addEventListener('click', () => this.newRound());
 
                 // Prevent text selection on buttons
@@ -324,18 +369,48 @@
                 });
             }
 
-            updateSettings() {
-                const newMin = parseInt(this.minInput.value) || 1;
-                const newMax = parseInt(this.maxInput.value) || 10;
+            getRandomObjectTheme() {
+                const themes = [
+                    '🐻', // Bears
+                    '🐸', // Frogs
+                    '🍎', // Apples
+                    '🌟', // Stars
+                    '🐱', // Cats
+                    '🐶', // Dogs
+                    '🍪', // Cookies
+                    '🌸', // Flowers
+                    '🐟', // Fish
+                    '🦋', // Butterflies
+                    '🍇', // Grapes
+                    '🐝', // Bees
+                    '🌺', // Hibiscus
+                    '🦄', // Unicorns
+                    '🍭', // Lollipops
+                    '🐨', // Koalas
+                    '🦁', // Lions
+                    '🐘', // Elephants
+                    '🦒', // Giraffes
+                    '🐧'  // Penguins
+                ];
+                return themes[Math.floor(Math.random() * themes.length)];
+            }
 
-                if (newMin > newMax) {
-                    this.maxInput.value = newMin;
-                    this.maxNum = newMin;
-                    this.minNum = newMin;
-                } else {
-                    this.minNum = newMin;
-                    this.maxNum = newMax;
+            displayObjects(number, container) {
+                if (!this.showObjects) {
+                    container.innerHTML = '';
+                    return;
                 }
+
+                let objectsHtml = '';
+                for (let i = 0; i < number; i++) {
+                    objectsHtml += `<span class="object-icon">${this.currentObjectTheme}</span>`;
+                }
+                container.innerHTML = objectsHtml;
+            }
+
+            toggleObjects() {
+                this.showObjects = this.showObjectsCheckbox.checked;
+                this.newRound(); // Refresh display
             }
 
             newRound() {
@@ -343,9 +418,14 @@
                 this.num1 = Math.floor(Math.random() * (this.maxNum - this.minNum + 1)) + this.minNum;
                 this.num2 = Math.floor(Math.random() * (this.maxNum - this.minNum + 1)) + this.minNum;
 
+                // Change to a new random object theme each round
+                this.currentObjectTheme = this.getRandomObjectTheme();
+
                 // Update display
                 this.number1El.textContent = this.num1;
                 this.number2El.textContent = this.num2;
+                this.displayObjects(this.num1, this.objects1El);
+                this.displayObjects(this.num2, this.objects2El);
 
                 // Reset button styles
                 this.resetButtonStyles();
