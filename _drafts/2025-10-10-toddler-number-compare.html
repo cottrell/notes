@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toddler Number Compare</title>
+    <style>
+        :root {
+            --bg-color: #ff9a9e;
+            --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --number-bg: #ffffff;
+            --number-border: #3498db;
+            --btn-default: #3498db;
+            --btn-correct: #27ae60;
+            --btn-incorrect: #e74c3c;
+            --text-color: #2c3e50;
+            --btn-text: #ffffff;
+            --settings-bg: rgba(255,255,255,0.9);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: var(--bg-gradient);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 2.5em;
+            color: var(--text-color);
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .numbers-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            margin: 40px 0;
+        }
+
+        .number {
+            font-size: 160px;
+            font-weight: bold;
+            color: var(--text-color);
+            background: var(--number-bg);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            min-width: 220px;
+            text-align: center;
+            border: 4px solid var(--number-border);
+            transition: transform 0.3s ease;
+            flex: 1;
+        }
+
+        .number:hover {
+            transform: scale(1.05);
+        }
+
+        .comparison-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .compare-btn {
+            width: 180px;
+            height: 180px;
+            border: none;
+            border-radius: 25px;
+            background: var(--btn-default);
+            color: var(--btn-text);
+            font-size: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+        }
+
+        .compare-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        .compare-btn:active {
+            transform: scale(0.95);
+        }
+
+        .compare-btn.correct {
+            background: var(--btn-correct);
+            animation: bounce 0.8s ease;
+        }
+
+        .compare-btn.incorrect {
+            background: var(--btn-incorrect);
+            animation: shake 0.5s ease;
+        }
+
+        .compare-btn.fade-out {
+            opacity: 0;
+            transform: scale(0.8);
+            pointer-events: none;
+        }
+
+        .label {
+            font-size: 24px;
+            margin-top: 10px;
+            font-weight: normal;
+        }
+
+        .settings-panel {
+            margin-top: 40px;
+            background: var(--settings-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .settings-panel label {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        .settings-panel input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid var(--number-border);
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .settings-panel button {
+            background: var(--btn-default);
+            color: var(--btn-text);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .settings-panel button:hover {
+            background: var(--btn-correct);
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        @keyframes celebrate {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(0.95); }
+            75% { transform: scale(1.1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes fade-out {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+
+        @media (max-width: 600px) {
+            .numbers-display {
+                flex-direction: column;
+                gap: 20px;
+                max-width: 100%;
+            }
+
+            .number {
+                font-size: 100px;
+                min-width: 160px;
+                padding: 25px;
+            }
+
+            .comparison-buttons {
+                gap: 15px;
+            }
+
+            .compare-btn {
+                width: 140px;
+                height: 140px;
+                font-size: 40px;
+            }
+
+            .label {
+                font-size: 18px;
+            }
+
+            .title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">Toddler Number Compare</h1>
+
+        <div class="numbers-display">
+            <div class="number" id="number1">5</div>
+
+            <div class="comparison-buttons">
+                <button class="compare-btn less-than" id="less-btn">
+                    <span class="symbol">&lt;</span>
+                    <span class="label">Less Than</span>
+                </button>
+
+                <button class="compare-btn equal-to" id="equal-btn">
+                    <span class="symbol">=</span>
+                    <span class="label">Equal</span>
+                </button>
+
+                <button class="compare-btn greater-than" id="greater-btn">
+                    <span class="symbol">&gt;</span>
+                    <span class="label">Greater Than</span>
+                </button>
+            </div>
+
+            <div class="number" id="number2">3</div>
+        </div>
+
+        <div class="settings-panel">
+            <label>Min: <input type="number" id="min-num" value="1" min="0" max="99"></label>
+            <label>Max: <input type="number" id="max-num" value="10" min="1" max="100"></label>
+            <button id="new-round-btn">New Round</button>
+        </div>
+
+        <div class="stats" id="stats">Correct: 0 | Total: 0</div>
+    </div>
+
+    <script>
+        class ToddlerCompareGame {
+            constructor() {
+                this.minNum = 1;
+                this.maxNum = 10;
+                this.correctCount = 0;
+                this.totalCount = 0;
+                this.initializeElements();
+                this.setupEventListeners();
+                this.newRound();
+                this.updateStats();
+            }
+
+            initializeElements() {
+                this.number1El = document.getElementById('number1');
+                this.number2El = document.getElementById('number2');
+                this.lessBtn = document.getElementById('less-btn');
+                this.equalBtn = document.getElementById('equal-btn');
+                this.greaterBtn = document.getElementById('greater-btn');
+                this.minInput = document.getElementById('min-num');
+                this.maxInput = document.getElementById('max-num');
+                this.newRoundBtn = document.getElementById('new-round-btn');
+                this.statsEl = document.getElementById('stats');
+            }
+
+            setupEventListeners() {
+                this.lessBtn.addEventListener('click', () => this.checkAnswer('less'));
+                this.equalBtn.addEventListener('click', () => this.checkAnswer('equal'));
+                this.greaterBtn.addEventListener('click', () => this.checkAnswer('greater'));
+
+                this.minInput.addEventListener('change', () => this.updateSettings());
+                this.maxInput.addEventListener('change', () => this.updateSettings());
+                this.newRoundBtn.addEventListener('click', () => this.newRound());
+
+                // Prevent text selection on buttons
+                document.addEventListener('selectstart', (e) => {
+                    if (e.target.classList.contains('compare-btn')) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            updateSettings() {
+                const newMin = parseInt(this.minInput.value) || 1;
+                const newMax = parseInt(this.maxInput.value) || 10;
+
+                if (newMin > newMax) {
+                    this.maxInput.value = newMin;
+                    this.maxNum = newMin;
+                    this.minNum = newMin;
+                } else {
+                    this.minNum = newMin;
+                    this.maxNum = newMax;
+                }
+            }
+
+            newRound() {
+                // Generate two random numbers
+                this.num1 = Math.floor(Math.random() * (this.maxNum - this.minNum + 1)) + this.minNum;
+                this.num2 = Math.floor(Math.random() * (this.maxNum - this.minNum + 1)) + this.minNum;
+
+                // Update display
+                this.number1El.textContent = this.num1;
+                this.number2El.textContent = this.num2;
+
+                // Reset button styles
+                this.resetButtonStyles();
+            }
+
+            checkAnswer(choice) {
+                this.totalCount++;
+                let correct = false;
+
+                if (choice === 'less' && this.num1 < this.num2) correct = true;
+                else if (choice === 'equal' && this.num1 === this.num2) correct = true;
+                else if (choice === 'greater' && this.num1 > this.num2) correct = true;
+
+                this.showFeedback(choice, correct);
+
+                if (correct) {
+                    this.correctCount++;
+                    this.playSound('correct');
+                    // Auto-advance after delay
+                    setTimeout(() => this.newRound(), 2000);
+                } else {
+                    this.playSound('incorrect');
+                }
+
+                this.updateStats();
+            }
+
+            showFeedback(choice, correct) {
+                this.resetButtonStyles();
+
+                // Make all other buttons fade out
+                const allButtons = [this.lessBtn, this.equalBtn, this.greaterBtn];
+                const clickedBtn = choice === 'less' ? this.lessBtn :
+                                  choice === 'equal' ? this.equalBtn : this.greaterBtn;
+
+                allButtons.forEach(btn => {
+                    if (btn !== clickedBtn) {
+                        btn.classList.add('fade-out');
+                    }
+                });
+
+                // Add the appropriate animation to clicked button
+                clickedBtn.classList.add(correct ? 'correct' : 'incorrect');
+
+                // Remove fade-out after animation
+                setTimeout(() => {
+                    allButtons.forEach(btn => {
+                        btn.classList.remove('fade-out');
+                    });
+                }, 800);
+            }
+
+            resetButtonStyles() {
+                [this.lessBtn, this.equalBtn, this.greaterBtn].forEach(btn => {
+                    btn.classList.remove('correct', 'incorrect', 'fade-out');
+                });
+            }
+
+            updateStats() {
+                this.statsEl.textContent = `Correct: ${this.correctCount} | Total: ${this.totalCount}`;
+            }
+
+            playSound(type) {
+                // Create audio context for fun sounds
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    if (type === 'correct') {
+                        // Happy ascending melody: C4 - E4 - G4 - C5
+                        oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
+                        oscillator.frequency.setValueAtTime(329.63, audioContext.currentTime + 0.1); // E4
+                        oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime + 0.2); // G4
+                        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime + 0.3); // C5
+
+                        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + 0.1);
+                        gainNode.gain.setValueAtTime(0.4, audioContext.currentTime + 0.2);
+                        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime + 0.3);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+                    } else {
+                        // "Uh oh" descending sound: F4 - D4 - B3
+                        oscillator.frequency.setValueAtTime(349.23, audioContext.currentTime); // F4
+                        oscillator.frequency.setValueAtTime(293.66, audioContext.currentTime + 0.15); // D4
+                        oscillator.frequency.setValueAtTime(246.94, audioContext.currentTime + 0.3); // B3
+
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime + 0.3);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+                    }
+                } catch (e) {
+                    // Fallback: no sound if Web Audio API not supported
+                    console.log(`${type} answer!`);
+                }
+            }
+        }
+
+        // Initialize game when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ToddlerCompareGame();
+        });
+
+        // Handle visibility change to resume audio context
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Resume audio context if it was suspended
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
