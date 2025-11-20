@@ -7,11 +7,12 @@ install:
 	./install.sh
 
 dev:
-	# Bind both the site and livereload to all interfaces so other LAN devices can reach it.
-	bundle exec jekyll serve --baseurl="" --watch --drafts --host=0.0.0.0 --port=4000 --livereload --livereload-host=0.0.0.0 --livereload-port=35729
+	# Bind both the site and livereload to all interfaces (IPv4 and IPv6) so other LAN devices can reach it.
+	bundle exec jekyll serve --baseurl="" --watch --drafts --host=:: --port=4000 --livereload --livereload-port=35729
 
 serve:
-	bundle exec jekyll serve --baseurl="" --watch --drafts --host=0.0.0.0 --port=4000 --livereload --livereload-host=0.0.0.0 --livereload-port=35729
+	# Bind both the site and livereload to all interfaces (IPv4 and IPv6) so other LAN devices can reach it.
+	bundle exec jekyll serve --baseurl="" --watch --drafts --host=:: --port=4000 --livereload --livereload-port=35729
 
 build:
 	bundle exec jekyll build
