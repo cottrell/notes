@@ -108,9 +108,9 @@ function runSimulation(regime) {
   ctx.fillText('Population', 0, 0);
   ctx.restore();
 
-  const generations = 50;
+  const generations = 40;
   const startPop = 50;
-  const numSimulations = regime === 'all' ? 8 : 15;
+  const numSimulations = regime === 'all' ? 15 : 25;
 
   let lambdas = [];
   let colors = [];
@@ -122,7 +122,7 @@ function runSimulation(regime) {
     names = ['Sub-Critical (λ=0.8)'];
   } else if (regime === 'critical') {
     lambdas = [1.0];
-    colors = ['#ffd93d'];
+    colors = ['#d4a017'];
     names = ['Critical (λ=1.0)'];
   } else if (regime === 'supercritical') {
     lambdas = [1.5];
@@ -130,7 +130,7 @@ function runSimulation(regime) {
     names = ['Super-Critical (λ=1.5)'];
   } else {
     lambdas = [0.8, 1.0, 1.5];
-    colors = ['#ff6b6b', '#ffd93d', '#6bcf7f'];
+    colors = ['#ff6b6b', '#d4a017', '#6bcf7f'];
     names = ['Sub-Critical', 'Critical', 'Super-Critical'];
   }
 
@@ -140,7 +140,9 @@ function runSimulation(regime) {
     let extinctCount = 0;
     let avgExtinctTime = 0;
     let extinctTimes = [];
+    let allTrajectories = [];
 
+    // Run all simulations and store trajectories
     for (let sim = 0; sim < numSimulations; sim++) {
       let population = [startPop];
 
@@ -151,7 +153,8 @@ function runSimulation(regime) {
         }
 
         let newPop = 0;
-        for (let i = 0; i < population[gen - 1]; i++) {
+        const currentPop = Math.min(population[gen - 1], 500); // Cap for performance
+        for (let i = 0; i < currentPop; i++) {
           // Poisson-like offspring distribution with mean = lambda and variance
           let offspring = 0;
           let L = Math.exp(-lambda);
@@ -173,24 +176,56 @@ function runSimulation(regime) {
         }
       }
 
-      // Draw trajectory
-      const maxPop = regime === 'all' ? 200 : Math.max(...population, 100);
-      const xScale = (width - 70) / generations;
-      const yScale = (height - 70) / maxPop;
+      allTrajectories.push(population);
+    }
 
+    // Calculate scales
+    const maxPop = regime === 'all' ? 200 : 150;
+    const xScale = (width - 70) / generations;
+    const yScale = (height - 70) / maxPop;
+
+    // Draw individual trajectories (faint)
+    allTrajectories.forEach(population => {
       ctx.strokeStyle = colors[lambdaIdx];
-      ctx.globalAlpha = regime === 'all' ? 0.6 : 0.4;
-      ctx.lineWidth = regime === 'all' ? 2 : 1;
+      ctx.globalAlpha = 0.2;
+      ctx.lineWidth = 1;
       ctx.beginPath();
 
       for (let i = 0; i < population.length; i++) {
         const x = 50 + i * xScale;
-        const y = height - 50 - population[i] * yScale;
+        const y = height - 50 - Math.min(population[i], maxPop) * yScale;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
+    });
+
+    // Calculate and draw mean trajectory (bold)
+    let meanTrajectory = [];
+    for (let gen = 0; gen < generations; gen++) {
+      let sum = 0;
+      let count = 0;
+      allTrajectories.forEach(traj => {
+        if (gen < traj.length) {
+          sum += traj[gen];
+          count++;
+        }
+      });
+      meanTrajectory.push(count > 0 ? sum / count : 0);
     }
+
+    ctx.strokeStyle = colors[lambdaIdx];
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    for (let i = 0; i < meanTrajectory.length; i++) {
+      const x = 50 + i * xScale;
+      const y = height - 50 - Math.min(meanTrajectory[i], maxPop) * yScale;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
 
     ctx.globalAlpha = 1;
 
@@ -468,13 +503,13 @@ function runShockSim() {
   // Three regimes to compare
   const regimes = [
     { name: 'Sub-Critical', lambda: 0.85, color: '#ff6b6b' },
-    { name: 'Critical', lambda: 1.0, color: '#ffd93d' },
+    { name: 'Critical', lambda: 1.0, color: '#d4a017' },
     { name: 'Super-Critical', lambda: 1.4, color: '#6bcf7f' }
   ];
 
-  const generations = 60;
-  const shockGen = 15; // When the shock hits
-  const numSims = 6; // Reduced for performance
+  const generations = 40;
+  const shockGen = 12; // When the shock hits
+  const numSims = 10;
 
   const results = [];
 
@@ -502,7 +537,8 @@ function runShockSim() {
 
         // Simulate reproduction with Poisson distribution (mean = lambda, with variance)
         let newPop = 0;
-        for (let i = 0; i < pop; i++) {
+        const currentPop = Math.min(pop, 300); // Cap for performance
+        for (let i = 0; i < currentPop; i++) {
           let offspring = 0;
           let L = Math.exp(-regime.lambda);
           let p = 1.0;
@@ -600,7 +636,7 @@ function runShockSim() {
     statsHtml += `<strong>${r.name}:</strong> ${totalExtinct.toFixed(0)}% extinct `;
     statsHtml += `(${beforeRate}% before shock, ${afterRate}% after shock)<br>`;
   });
-  statsHtml += `<br><em>Each panel shows ${numSims} simulated trajectories (reduced for performance). The vertical red line marks when the shock hits.</em>`;
+  statsHtml += `<br><em>Each panel shows ${numSims} simulated trajectories. The vertical red line marks when the shock hits.</em>`;
 
   document.getElementById('shockStats').innerHTML = statsHtml;
 }
@@ -778,7 +814,7 @@ function runExtinctionSims() {
 
     const regimes = [
       { name: 'Sub-Critical', lambda: 0.8, color: '#ff6b6b', y: 80 },
-      { name: 'Critical', lambda: 1.0, color: '#ffd93d', y: 230 },
+      { name: 'Critical', lambda: 1.0, color: '#d4a017', y: 230 },
       { name: 'Super-Critical', lambda: 1.5, color: '#6bcf7f', y: 380 }
     ];
 
