@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 if [ -z "$1" ]; then
   echo "Error: Title is required. Usage: ./draft.sh \"Your Post Title\""
   exit 1
