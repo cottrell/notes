@@ -33,12 +33,12 @@ gem install bundler
 echo "Bundler version:"
 bundle --version
 
-# Step 7: Install Jekyll
-echo "Installing Jekyll..."
-gem install jekyll
+# Step 7: Install gems from Gemfile
+echo "Installing gems using Bundler..."
+bundle install
 
 # Step 8: Verify Jekyll installation
 echo "Jekyll version:"
-jekyll --version
+bundle exec jekyll --version
 
 echo "Installation complete! Bundler and Jekyll are ready to use."
