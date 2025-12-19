@@ -11,6 +11,9 @@ plugins:
   - jekyll-mermaid
 
 markdown: kramdown
+
+sass:
+  quiet_deps: true
 highlighter: rouge
 
 # Enable MathJax globally
