@@ -265,36 +265,44 @@ title: "Word Game"
         .color-btn:hover {
             transform: scale(1.15);
         }
+        body {
+            background-color: #f0f0f0;
+        }
 
         .color-btn.active {
-            border-color: #fff;
+            border-color: #000;
         }
 
         /* Theme backgrounds */
-        .theme-yellow { background: #fff8dc; }
-        .theme-yellow .game-container { background: #f5c518; color: #333; }
-        .theme-yellow .control-btn { background: #e6b000; color: #333; border-color: #cc9900; }
-        .theme-yellow .control-btn.active { background: #4CAF50; color: #fff; border-color: #4CAF50; }
-        .theme-yellow .controls label { color: #555; }
-        .theme-yellow .score { color: #555; }
+        .game-container.theme-yellow { background: #f5c518; color: #333; }
+        .game-container.theme-yellow .control-btn { background: #e6b000; color: #333; border-color: #cc9900; }
+        .game-container.theme-yellow .control-btn.active { background: #4CAF50; color: #fff; border-color: #4CAF50; }
+        .game-container.theme-yellow .controls label { color: #555; }
+        .game-container.theme-yellow .score { color: #555; }
 
-        .theme-blue { background: #e3f2fd; }
-        .theme-blue .game-container { background: #2196F3; }
-        .theme-blue .control-btn { background: #1976D2; border-color: #1565C0; }
-        .theme-blue .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .game-container.theme-blue { background: #2196F3; color: #fff; }
+        .game-container.theme-blue .control-btn { background: #1976D2; border-color: #1565C0; color: #fff;}
+        .game-container.theme-blue .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .game-container.theme-blue .controls label { color: #e0e0e0; }
+        .game-container.theme-blue .score { color: #e0e0e0; }
 
-        .theme-pink { background: #fce4ec; }
-        .theme-pink .game-container { background: #e91e63; }
-        .theme-pink .control-btn { background: #c2185b; border-color: #ad1457; }
-        .theme-pink .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .game-container.theme-pink { background: #e91e63; color: #fff; }
+        .game-container.theme-pink .control-btn { background: #c2185b; border-color: #ad1457; color: #fff; }
+        .game-container.theme-pink .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .game-container.theme-pink .controls label { color: #fce4ec; }
+        .game-container.theme-pink .score { color: #fce4ec; }
 
-        .theme-green { background: #e8f5e9; }
-        .theme-green .game-container { background: #4CAF50; }
-        .theme-green .control-btn { background: #388E3C; border-color: #2E7D32; }
-        .theme-green .control-btn.active { background: #fff; color: #333; border-color: #fff; }
+        .game-container.theme-green { background: #4CAF50; color: #fff; }
+        .game-container.theme-green .control-btn { background: #388E3C; border-color: #2E7D32; color: #fff; }
+        .game-container.theme-green .control-btn.active { background: #fff; color: #333; border-color: #fff; }
+        .game-container.theme-green .controls label { color: #e8f5e9; }
+        .game-container.theme-green .score { color: #e8f5e9; }
 
-        .theme-dark { background: #121212; }
-        .theme-dark .game-container { background: #1a1a2e; }
+        .game-container.theme-dark { background: #1a1a2e; color: #fff; }
+        .game-container.theme-dark .control-btn { background: #2a2a4e; color: #fff; border-color: #444;}
+        .game-container.theme-dark .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+        .game-container.theme-dark .controls label { color: #aaa; }
+        .game-container.theme-dark .score { color: #aaa; }
     </style>
 </head>
 <body>
@@ -717,8 +725,9 @@ const themePicker = document.getElementById('theme-picker');
 let currentTheme = localStorage.getItem('theme') || 'dark';
 
 function setTheme(themeName) {
-    document.body.className = ''; // Clear existing themes
-    document.body.classList.add(`theme-${themeName}`);
+    const gameContainer = document.querySelector('.game-container');
+    gameContainer.className = 'game-container'; // Clear existing themes
+    gameContainer.classList.add(`theme-${themeName}`);
     localStorage.setItem('theme', themeName);
     currentTheme = themeName;
     updateThemeButtons();
