@@ -342,6 +342,17 @@ title: "Word Game"
             </div>
         </div>
     </div>
+
+    <div class="color-picker-section">
+        <h3>Choose Theme</h3>
+        <div class="color-picker" id="theme-picker">
+            <button class="color-btn" style="background: #1a1a2e;" data-theme="dark" aria-label="Dark Theme"></button>
+            <button class="color-btn" style="background: #f5c518;" data-theme="yellow" aria-label="Yellow Theme"></button>
+            <button class="color-btn" style="background: #2196F3;" data-theme="blue" aria-label="Blue Theme"></button>
+            <button class="color-btn" style="background: #e91e63;" data-theme="pink" aria-label="Pink Theme"></button>
+            <button class="color-btn" style="background: #4CAF50;" data-theme="green" aria-label="Green Theme"></button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -700,6 +711,42 @@ function checkAnswer(answer) {
 
 updateWordList();
 nextRound();
+
+// Theme management
+const themePicker = document.getElementById('theme-picker');
+let currentTheme = localStorage.getItem('theme') || 'dark';
+
+function setTheme(themeName) {
+    document.body.className = ''; // Clear existing themes
+    document.body.classList.add(`theme-${themeName}`);
+    localStorage.setItem('theme', themeName);
+    currentTheme = themeName;
+    updateThemeButtons();
+}
+
+function updateThemeButtons() {
+    const buttons = themePicker.querySelectorAll('.color-btn');
+    buttons.forEach(button => {
+        if (button.dataset.theme === currentTheme) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+    });
+}
+
+themePicker.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target.classList.contains('color-btn')) {
+        const theme = target.dataset.theme;
+        if (theme) {
+            setTheme(theme);
+        }
+    }
+});
+
+// Initialize theme on load
+setTheme(currentTheme);
 </script>
 </body>
 </html>
