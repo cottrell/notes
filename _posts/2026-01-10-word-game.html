@@ -80,23 +80,30 @@ title: "Word Game"
             justify-content: center;
             gap: 12px;
             margin: 25px 0;
+            padding: 20px;
+            border: 3px solid #4CAF50;
+            border-radius: 15px;
+            background: rgba(76, 175, 80, 0.1);
         }
 
         .choice-btn {
-            padding: 16px 24px;
-            font-size: 24px;
-            border: 3px solid #555;
+            padding: 18px 28px;
+            font-size: 26px;
+            font-weight: bold;
+            border: 3px solid #4CAF50;
             border-radius: 12px;
             cursor: pointer;
-            background: #2a2a4e;
+            background: linear-gradient(145deg, #3a5a3e, #2d4a31);
             color: #fff;
-            min-width: 90px;
-            transition: transform 0.1s, background 0.1s;
+            min-width: 100px;
+            transition: transform 0.1s, background 0.1s, box-shadow 0.1s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
         .choice-btn:hover {
-            transform: scale(1.05);
-            background: #3a3a6e;
+            transform: scale(1.08);
+            background: linear-gradient(145deg, #4a7a4e, #3d6a41);
+            box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
         }
 
         .choice-btn:active {
