@@ -435,6 +435,16 @@ title: "Number Compare"
                 this.statsEl = document.getElementById('stats');
             }
 
+            updateSettings() {
+                this.minNum = parseInt(this.minInput.value) || 1;
+                this.maxNum = parseInt(this.maxInput.value) || 10;
+                if (this.minNum > this.maxNum) {
+                    this.maxNum = this.minNum;
+                    this.maxInput.value = this.maxNum;
+                }
+                this.newRound();
+            }
+
             setupEventListeners() {
                 this.lessBtn.addEventListener('click', () => this.checkAnswer('less'));
                 this.equalBtn.addEventListener('click', () => this.checkAnswer('equal'));
