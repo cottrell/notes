@@ -245,6 +245,56 @@ title: "Word Game"
             font-size: 12px;
             margin-left: 8px;
         }
+
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .color-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.15);
+        }
+
+        .color-btn.active {
+            border-color: #fff;
+        }
+
+        /* Theme backgrounds */
+        .theme-yellow { background: #fff8dc; }
+        .theme-yellow .game-container { background: #f5c518; color: #333; }
+        .theme-yellow .control-btn { background: #e6b000; color: #333; border-color: #cc9900; }
+        .theme-yellow .control-btn.active { background: #4CAF50; color: #fff; border-color: #4CAF50; }
+        .theme-yellow .controls label { color: #555; }
+        .theme-yellow .score { color: #555; }
+
+        .theme-blue { background: #e3f2fd; }
+        .theme-blue .game-container { background: #2196F3; }
+        .theme-blue .control-btn { background: #1976D2; border-color: #1565C0; }
+        .theme-blue .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+
+        .theme-pink { background: #fce4ec; }
+        .theme-pink .game-container { background: #e91e63; }
+        .theme-pink .control-btn { background: #c2185b; border-color: #ad1457; }
+        .theme-pink .control-btn.active { background: #4CAF50; border-color: #4CAF50; }
+
+        .theme-green { background: #e8f5e9; }
+        .theme-green .game-container { background: #4CAF50; }
+        .theme-green .control-btn { background: #388E3C; border-color: #2E7D32; }
+        .theme-green .control-btn.active { background: #fff; color: #333; border-color: #fff; }
+
+        .theme-dark { background: #1a1a2e; }
+        .theme-dark .game-container { background: #1a1a2e; }
     </style>
 </head>
 <body>
@@ -423,7 +473,43 @@ function playSuccess() {
 }
 
 function playWrong() {
-    playTone(200, 0.3, 'triangle');
+    // Wobbly spring "boing-oing-oing" sound
+    const ctx = getAudioContext();
+    const t = ctx.currentTime;
+
+    // Main wobbling tone
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+
+    // Start high, drop down with wobbles
+    osc.frequency.setValueAtTime(500, t);
+    osc.frequency.setValueAtTime(300, t + 0.08);
+    osc.frequency.setValueAtTime(400, t + 0.15);
+    osc.frequency.setValueAtTime(250, t + 0.22);
+    osc.frequency.setValueAtTime(350, t + 0.30);
+    osc.frequency.setValueAtTime(150, t + 0.45);
+
+    gain.gain.setValueAtTime(0.5, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.5);
+
+    // Add a low "bonk" for emphasis
+    const bonk = ctx.createOscillator();
+    const bonkGain = ctx.createGain();
+    bonk.type = 'triangle';
+    bonk.frequency.setValueAtTime(120, t);
+    bonk.frequency.exponentialRampToValueAtTime(60, t + 0.15);
+    bonkGain.gain.setValueAtTime(0.3, t);
+    bonkGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+    bonk.connect(bonkGain);
+    bonkGain.connect(ctx.destination);
+    bonk.start(t);
+    bonk.stop(t + 0.15);
 }
 
 function setDifficulty(level) {
@@ -554,16 +640,21 @@ function shuffle(arr) {
     return a;
 }
 
-function speakWord() {
-    if (!currentWord) return;
-    const utterance = new SpeechSynthesisUtterance(currentWord.word);
+function speakWord(word) {
+    const text = word || (currentWord ? currentWord.word : null);
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.8;
     speechSynthesis.speak(utterance);
 }
 
 function nextRound() {
     const wordList = words[currentDifficulty];
-    currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+    const prevWord = currentWord;
+    // Pick a new word, avoiding the previous one
+    do {
+        currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+    } while (wordList.length > 1 && prevWord && currentWord.word === prevWord.word);
 
     document.getElementById('prompt').textContent = currentWord.emoji;
     document.getElementById('feedback').textContent = '';
@@ -602,6 +693,8 @@ function checkAnswer(answer) {
     } else {
         feedback.textContent = '❌ Try again!';
         playWrong();
+        // Speak the clicked word after wrong sound
+        setTimeout(() => speakWord(answer), 400);
     }
 }
 
