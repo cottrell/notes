@@ -1,0 +1,605 @@
+---
+layout: null
+title: "Word Game"
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Word Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .game-container {
+            max-width: 500px;
+            margin: 20px auto;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 20px;
+            background: #1a1a2e;
+            border-radius: 15px;
+            color: #fff;
+        }
+
+        .game-container h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            margin: 15px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .controls label {
+            font-size: 16px;
+            color: #aaa;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            font-size: 16px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #2a2a4e;
+            color: #fff;
+        }
+
+        .control-btn.active {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .prompt-area {
+            font-size: 120px;
+            margin: 30px 0;
+            min-height: 140px;
+        }
+
+        .speak-btn {
+            padding: 12px 24px;
+            font-size: 20px;
+            border: none;
+            border-radius: 12px;
+            background: #2196F3;
+            color: white;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        .speak-btn:hover {
+            background: #1976D2;
+        }
+
+        .choices {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+
+        .choice-btn {
+            padding: 16px 24px;
+            font-size: 24px;
+            border: 3px solid #555;
+            border-radius: 12px;
+            cursor: pointer;
+            background: #2a2a4e;
+            color: #fff;
+            min-width: 90px;
+            transition: transform 0.1s, background 0.1s;
+        }
+
+        .choice-btn:hover {
+            transform: scale(1.05);
+            background: #3a3a6e;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .feedback {
+            font-size: 42px;
+            min-height: 50px;
+            margin: 15px 0;
+        }
+
+        .score {
+            font-size: 22px;
+            color: #aaa;
+            margin: 15px 0;
+        }
+
+        .next-btn {
+            padding: 12px 24px;
+            font-size: 20px;
+            border: none;
+            border-radius: 12px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            margin: 8px;
+        }
+
+        .next-btn:hover {
+            background: #388E3C;
+        }
+
+        .words-toggle {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #2a2a4e;
+            color: #aaa;
+            margin-top: 15px;
+        }
+
+        .words-toggle:hover {
+            background: #3a3a6e;
+        }
+
+        .word-list {
+            display: none;
+            max-height: 500px;
+            overflow-y: auto;
+            background: #2a2a4e;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .word-list.show {
+            display: block;
+        }
+
+        .word-list-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+        }
+
+        .word-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 16px;
+            padding: 4px 8px;
+            background: #1a1a2e;
+            border-radius: 6px;
+        }
+
+        .word-item .emoji {
+            font-size: 20px;
+        }
+
+        .edit-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+
+        .edit-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #2a2a4e;
+            color: #aaa;
+        }
+
+        .edit-btn:hover {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .edit-area {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .edit-area.show {
+            display: block;
+        }
+
+        .edit-area textarea {
+            width: 100%;
+            height: 150px;
+            background: #1a1a2e;
+            color: #fff;
+            border: 2px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .edit-area .btn-row {
+            margin-top: 8px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .custom-badge {
+            background: #9c27b0;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <h2>Word Game</h2>
+
+    <div class="controls">
+        <label>Words:</label>
+        <button onclick="setDifficulty('easy')" id="btn-easy" class="control-btn active">Easy</button>
+        <button onclick="setDifficulty('medium')" id="btn-medium" class="control-btn">Medium</button>
+    </div>
+
+    <div class="controls">
+        <label>Choices:</label>
+        <button onclick="setNumChoices(2)" id="btn-n2" class="control-btn">2</button>
+        <button onclick="setNumChoices(3)" id="btn-n3" class="control-btn">3</button>
+        <button onclick="setNumChoices(4)" id="btn-n4" class="control-btn active">4</button>
+        <button onclick="setNumChoices(5)" id="btn-n5" class="control-btn">5</button>
+    </div>
+
+    <div class="prompt-area" id="prompt"></div>
+
+    <button class="speak-btn" onclick="speakWord()">🔊 Hear Again</button>
+
+    <div class="choices" id="choices"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="score">Score: <span id="score">0</span> / <span id="tries">0</span></div>
+
+    <button class="next-btn" onclick="nextRound()">Next Word</button>
+
+    <button class="words-toggle" onclick="toggleWordList()">Show Words (<span id="word-count">28</span>)</button>
+    <div class="word-list" id="word-list">
+        <div class="word-list-grid" id="word-list-grid"></div>
+    </div>
+
+    <div class="edit-section">
+        <button class="edit-btn" onclick="toggleEditArea()">✏️ Edit Words</button>
+        <div class="edit-area" id="edit-area">
+            <textarea id="word-textarea" placeholder="word,emoji (one per line)"></textarea>
+            <div class="btn-row">
+                <button class="edit-btn" onclick="saveWords()">💾 Save</button>
+                <button class="edit-btn" onclick="resetToDefault()">↩ Reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const defaultWords = {
+    easy: [
+        { word: 'cat', emoji: '🐱' },
+        { word: 'dog', emoji: '🐕' },
+        { word: 'pig', emoji: '🐷' },
+        { word: 'cow', emoji: '🐄' },
+        { word: 'bee', emoji: '🐝' },
+        { word: 'owl', emoji: '🦉' },
+        { word: 'fox', emoji: '🦊' },
+        { word: 'hen', emoji: '🐔' },
+        { word: 'ant', emoji: '🐜' },
+        { word: 'sun', emoji: '☀️' },
+        { word: 'moon', emoji: '🌙' },
+        { word: 'star', emoji: '⭐' },
+        { word: 'ball', emoji: '🏀' },
+        { word: 'car', emoji: '🚗' },
+        { word: 'bus', emoji: '🚌' },
+        { word: 'hat', emoji: '🎩' },
+        { word: 'cup', emoji: '☕' },
+        { word: 'bed', emoji: '🛏️' },
+        { word: 'fish', emoji: '🐟' },
+        { word: 'bird', emoji: '🐦' },
+        { word: 'duck', emoji: '🦆' },
+        { word: 'frog', emoji: '🐸' },
+        { word: 'bear', emoji: '🐻' },
+        { word: 'cake', emoji: '🎂' },
+        { word: 'apple', emoji: '🍎' },
+        { word: 'tree', emoji: '🌳' },
+        { word: 'house', emoji: '🏠' },
+        { word: 'book', emoji: '📖' },
+    ],
+    medium: [
+        { word: 'elephant', emoji: '🐘' },
+        { word: 'butterfly', emoji: '🦋' },
+        { word: 'rainbow', emoji: '🌈' },
+        { word: 'rocket', emoji: '🚀' },
+        { word: 'robot', emoji: '🤖' },
+        { word: 'dragon', emoji: '🐉' },
+        { word: 'penguin', emoji: '🐧' },
+        { word: 'monkey', emoji: '🐵' },
+        { word: 'rabbit', emoji: '🐰' },
+        { word: 'turtle', emoji: '🐢' },
+        { word: 'flower', emoji: '🌸' },
+        { word: 'balloon', emoji: '🎈' },
+        { word: 'pizza', emoji: '🍕' },
+        { word: 'guitar', emoji: '🎸' },
+        { word: 'airplane', emoji: '✈️' },
+        { word: 'bicycle', emoji: '🚲' },
+        { word: 'dolphin', emoji: '🐬' },
+        { word: 'unicorn', emoji: '🦄' },
+    ]
+};
+
+const emojiLookup = {
+    // Animals
+    cat: '🐱', dog: '🐕', pig: '🐷', cow: '🐄', bee: '🐝', owl: '🦉', fox: '🦊',
+    hen: '🐔', ant: '🐜', fish: '🐟', bird: '🐦', duck: '🦆', frog: '🐸', bear: '🐻',
+    elephant: '🐘', butterfly: '🦋', dragon: '🐉', penguin: '🐧', monkey: '🐵',
+    rabbit: '🐰', turtle: '🐢', dolphin: '🐬', unicorn: '🦄', lion: '🦁', tiger: '🐯',
+    horse: '🐴', sheep: '🐑', goat: '🐐', mouse: '🐭', hamster: '🐹', snake: '🐍',
+    whale: '🐋', shark: '🦈', octopus: '🐙', crab: '🦀', snail: '🐌', bug: '🐛',
+    spider: '🕷️', bat: '🦇', chicken: '🐓', rooster: '🐓', turkey: '🦃', peacock: '🦚',
+    parrot: '🦜', swan: '🦢', flamingo: '🦩', gorilla: '🦍', wolf: '🐺', deer: '🦌',
+    zebra: '🦓', giraffe: '🦒', hippo: '🦛', rhino: '🦏', camel: '🐪', llama: '🦙',
+    kangaroo: '🦘', koala: '🐨', panda: '🐼', sloth: '🦥', otter: '🦦', skunk: '🦨',
+    badger: '🦡', beaver: '🦫', hedgehog: '🦔', squirrel: '🐿️', chipmunk: '🐿️',
+    // Nature
+    sun: '☀️', moon: '🌙', star: '⭐', tree: '🌳', flower: '🌸', rainbow: '🌈',
+    cloud: '☁️', rain: '🌧️', snow: '❄️', fire: '🔥', water: '💧', leaf: '🍃',
+    mountain: '⛰️', ocean: '🌊', river: '🏞️', forest: '🌲', desert: '🏜️',
+    // Food
+    apple: '🍎', banana: '🍌', orange: '🍊', grape: '🍇', strawberry: '🍓',
+    watermelon: '🍉', peach: '🍑', cherry: '🍒', lemon: '🍋', pizza: '🍕',
+    burger: '🍔', fries: '🍟', hotdog: '🌭', sandwich: '🥪', taco: '🌮',
+    cake: '🎂', cookie: '🍪', donut: '🍩', candy: '🍬', chocolate: '🍫',
+    icecream: '🍦', bread: '🍞', cheese: '🧀', egg: '🥚', milk: '🥛',
+    // Objects
+    ball: '🏀', car: '🚗', bus: '🚌', hat: '🎩', cup: '☕', bed: '🛏️',
+    house: '🏠', book: '📖', rocket: '🚀', robot: '🤖', balloon: '🎈',
+    guitar: '🎸', airplane: '✈️', bicycle: '🚲', train: '🚂', boat: '⛵',
+    phone: '📱', computer: '💻', clock: '🕐', key: '🔑', lamp: '💡',
+    chair: '🪑', table: '🪑', door: '🚪', window: '🪟', mirror: '🪞',
+    // People & Body
+    baby: '👶', boy: '👦', girl: '👧', man: '👨', woman: '👩',
+    hand: '✋', foot: '🦶', eye: '👁️', nose: '👃', ear: '👂', mouth: '👄',
+    heart: '❤️', brain: '🧠',
+    // Actions/Concepts (shown as related objects)
+    run: '🏃', jump: '🦘', swim: '🏊', fly: '✈️', sleep: '😴', eat: '🍽️',
+    happy: '😊', sad: '😢', angry: '😠', love: '❤️', think: '🤔'
+};
+
+let words = JSON.parse(JSON.stringify(defaultWords));
+
+let currentDifficulty = 'easy';
+let currentWord = null;
+let score = 0;
+let tries = 0;
+let numChoices = 4;
+let audioCtx = null;
+
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+}
+
+function playTone(freq, duration, type = 'sine') {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = 0.3;
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+}
+
+function playSuccess() {
+    playTone(523, 0.1);
+    setTimeout(() => playTone(659, 0.1), 100);
+    setTimeout(() => playTone(784, 0.2), 200);
+}
+
+function playWrong() {
+    playTone(200, 0.3, 'triangle');
+}
+
+function setDifficulty(level) {
+    currentDifficulty = level;
+    updateDifficultyButtons();
+    updateWordList();
+    nextRound();
+}
+
+function toggleWordList() {
+    const list = document.getElementById('word-list');
+    const btn = document.querySelector('.words-toggle');
+    list.classList.toggle('show');
+    btn.textContent = list.classList.contains('show')
+        ? `Hide Words (${words[currentDifficulty].length})`
+        : `Show Words (${words[currentDifficulty].length})`;
+}
+
+function updateWordList() {
+    const grid = document.getElementById('word-list-grid');
+    const wordList = words[currentDifficulty];
+    document.getElementById('word-count').textContent = wordList.length;
+    grid.innerHTML = wordList.map(w =>
+        `<div class="word-item"><span class="emoji">${w.emoji}</span>${w.word}</div>`
+    ).join('');
+}
+
+function toggleEditArea() {
+    const area = document.getElementById('edit-area');
+    const textarea = document.getElementById('word-textarea');
+    area.classList.toggle('show');
+
+    if (area.classList.contains('show')) {
+        // Populate with current word list
+        const wordList = words[currentDifficulty];
+        textarea.value = wordList.map(w => `${w.word},${w.emoji}`).join('\n');
+    }
+}
+
+function saveWords() {
+    const textarea = document.getElementById('word-textarea');
+    const text = textarea.value.trim();
+
+    if (!text) {
+        alert('No words entered');
+        return;
+    }
+
+    const lines = text.split('\n').filter(l => l.trim());
+    let parsed = lines.map(line => {
+        const parts = line.split(/[,\t]/).map(p => p.trim());
+        const word = parts[0].toLowerCase();
+        const emoji = parts[1] || emojiLookup[word] || '❓';
+        return { word, emoji };
+    });
+
+    // Remove duplicates (keep first occurrence) and sort
+    const seen = new Set();
+    parsed = parsed.filter(w => {
+        if (seen.has(w.word)) return false;
+        seen.add(w.word);
+        return true;
+    }).sort((a, b) => a.word.localeCompare(b.word));
+
+    if (parsed.length > 0) {
+        words.custom = parsed;
+        currentDifficulty = 'custom';
+        updateDifficultyButtons();
+        updateWordList();
+        nextRound();
+        // Update textarea to show filled-in emojis
+        textarea.value = parsed.map(w => `${w.word},${w.emoji}`).join('\n');
+    }
+}
+
+function updateDifficultyButtons() {
+    document.getElementById('btn-easy').classList.remove('active');
+    document.getElementById('btn-medium').classList.remove('active');
+    let customBtn = document.getElementById('btn-custom');
+
+    if (words.custom) {
+        // Show custom button if we have custom words
+        if (!customBtn) {
+            const controls = document.querySelector('.controls');
+            customBtn = document.createElement('button');
+            customBtn.id = 'btn-custom';
+            customBtn.className = 'control-btn';
+            customBtn.innerHTML = 'Custom<span class="custom-badge">✓</span>';
+            customBtn.onclick = () => setDifficulty('custom');
+            controls.appendChild(customBtn);
+        }
+        customBtn.classList.remove('active');
+    }
+
+    if (currentDifficulty === 'custom' && customBtn) {
+        customBtn.classList.add('active');
+    } else if (currentDifficulty !== 'custom') {
+        document.getElementById('btn-' + currentDifficulty).classList.add('active');
+    }
+}
+
+function resetToDefault() {
+    words = JSON.parse(JSON.stringify(defaultWords));
+    delete words.custom;
+    currentDifficulty = 'easy';
+    const customBtn = document.getElementById('btn-custom');
+    if (customBtn) customBtn.remove();
+    document.getElementById('btn-easy').classList.add('active');
+    updateWordList();
+    nextRound();
+}
+
+function setNumChoices(n) {
+    numChoices = n;
+    for (let i = 2; i <= 5; i++) {
+        document.getElementById('btn-n' + i).classList.remove('active');
+    }
+    document.getElementById('btn-n' + n).classList.add('active');
+    nextRound();
+}
+
+function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function speakWord() {
+    if (!currentWord) return;
+    const utterance = new SpeechSynthesisUtterance(currentWord.word);
+    utterance.rate = 0.8;
+    speechSynthesis.speak(utterance);
+}
+
+function nextRound() {
+    const wordList = words[currentDifficulty];
+    currentWord = wordList[Math.floor(Math.random() * wordList.length)];
+
+    document.getElementById('prompt').textContent = currentWord.emoji;
+    document.getElementById('feedback').textContent = '';
+
+    let choices = [currentWord];
+    const others = wordList.filter(w => w.word !== currentWord.word);
+    const shuffledOthers = shuffle(others);
+    for (let i = 0; i < numChoices - 1 && i < shuffledOthers.length; i++) {
+        choices.push(shuffledOthers[i]);
+    }
+    choices = shuffle(choices);
+
+    const choicesDiv = document.getElementById('choices');
+    choicesDiv.innerHTML = '';
+    choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = c.word;
+        btn.onclick = () => checkAnswer(c.word);
+        choicesDiv.appendChild(btn);
+    });
+
+    setTimeout(speakWord, 300);
+}
+
+function checkAnswer(answer) {
+    tries++;
+    document.getElementById('tries').textContent = tries;
+    const feedback = document.getElementById('feedback');
+    if (answer === currentWord.word) {
+        score++;
+        document.getElementById('score').textContent = score;
+        feedback.textContent = '⭐ Great job! ⭐';
+        playSuccess();
+        setTimeout(nextRound, 1000);
+    } else {
+        feedback.textContent = '❌ Try again!';
+        playWrong();
+    }
+}
+
+updateWordList();
+nextRound();
+</script>
+</body>
+</html>
