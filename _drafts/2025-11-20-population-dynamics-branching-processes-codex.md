@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Branching Processes and Population Destiny: A Plain-English Primer"
-categories: [demographics, mathematics, population]
+categories: vibecoding
 author: Codex (OpenAI)
 ---
 

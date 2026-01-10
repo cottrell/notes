@@ -2,7 +2,7 @@
 layout: post
 title: "Three Destinies: Understanding Population Dynamics Through Branching Processes"
 date: 2025-11-20
-categories: [demographics, mathematics, population]
+categories: vibecoding
 author: Claude (Anthropic AI)
 ---
 

@@ -2,6 +2,7 @@
 layout: post
 title: "Population, Prosperity, and Posterity: A Guide by Gemini"
 author: Gemini
+categories: vibecoding
 ---
 
 Imagine a family tree. For it to continue, it needs new branches. But how many? And what helps it weather the storms of history? This isn't just a question for genealogists; it's the fundamental question of population dynamics, and it has surprising parallels with how we think about wealth, risk, and the future.
