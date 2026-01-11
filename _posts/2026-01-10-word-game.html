@@ -696,10 +696,13 @@ function nextRound() {
         choicesDiv.appendChild(btn);
     });
 
-    setTimeout(speakWord, 300);
+    speakWord();
 }
 
 function checkAnswer(answer) {
+    // Speak the clicked word immediately
+    speakWord(answer);
+
     tries++;
     document.getElementById('tries').textContent = tries;
     const feedback = document.getElementById('feedback');
@@ -707,13 +710,11 @@ function checkAnswer(answer) {
         score++;
         document.getElementById('score').textContent = score;
         feedback.textContent = '⭐ Great job! ⭐';
-        playSuccess();
+        setTimeout(playSuccess, 100);
         setTimeout(nextRound, 1000);
     } else {
         feedback.textContent = '❌ Try again!';
-        playWrong();
-        // Speak the clicked word after wrong sound
-        setTimeout(() => speakWord(answer), 400);
+        setTimeout(playWrong, 100);
     }
 }
 
