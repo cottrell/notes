@@ -697,7 +697,11 @@ function nextRound() {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = c.word;
-        btn.onclick = () => checkAnswer(c.word);
+        btn.onmousedown = () => checkAnswer(c.word);
+        btn.ontouchstart = (e) => {
+            e.preventDefault();
+            checkAnswer(c.word);
+        };
         choicesDiv.appendChild(btn);
     });
 
