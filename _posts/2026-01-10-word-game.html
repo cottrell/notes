@@ -662,12 +662,17 @@ function shuffle(arr) {
 function speakWord(word) {
     const text = word || (currentWord ? currentWord.word : null);
     if (!text) return;
+    // Cancel any ongoing speech to prevent queuing
+    speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.8;
     speechSynthesis.speak(utterance);
 }
 
+let isProcessing = false;
+
 function nextRound() {
+    isProcessing = false;
     const wordList = words[currentDifficulty];
     const prevWord = currentWord;
     // Pick a new word, avoiding the previous one
@@ -700,6 +705,9 @@ function nextRound() {
 }
 
 function checkAnswer(answer) {
+    // Prevent multiple clicks while processing correct answer
+    if (isProcessing && answer === currentWord.word) return;
+
     // Speak the clicked word immediately
     speakWord(answer);
 
@@ -707,14 +715,15 @@ function checkAnswer(answer) {
     document.getElementById('tries').textContent = tries;
     const feedback = document.getElementById('feedback');
     if (answer === currentWord.word) {
+        isProcessing = true;
         score++;
         document.getElementById('score').textContent = score;
         feedback.textContent = '⭐ Great job! ⭐';
-        setTimeout(playSuccess, 100);
+        playSuccess();
         setTimeout(nextRound, 1000);
     } else {
         feedback.textContent = '❌ Try again!';
-        setTimeout(playWrong, 100);
+        playWrong();
     }
 }
 
