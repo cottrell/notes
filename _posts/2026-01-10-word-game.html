@@ -487,8 +487,8 @@ function playTone(freq, duration, type = 'sine') {
 
 function playSuccess() {
     playTone(523, 0.1);
-    setTimeout(() => playTone(659, 0.1), 100);
-    setTimeout(() => playTone(784, 0.2), 200);
+    setTimeout(() => playTone(659, 0.1), 0);
+    setTimeout(() => playTone(784, 0.2), 0);
 }
 
 function playWrong() {
@@ -659,13 +659,16 @@ function shuffle(arr) {
     return a;
 }
 
-function speakWord(word) {
+function speakWord(word, callback) {
     const text = word || (currentWord ? currentWord.word : null);
     if (!text) return;
     // Cancel any ongoing speech to prevent queuing
     speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.8;
+    utterance.rate = 1.2;
+    if (callback) {
+        utterance.onend = callback;
+    }
     speechSynthesis.speak(utterance);
 }
 
@@ -712,9 +715,6 @@ function checkAnswer(answer) {
     // Prevent multiple clicks while processing correct answer
     if (isProcessing && answer === currentWord.word) return;
 
-    // Speak the clicked word immediately
-    speakWord(answer);
-
     tries++;
     document.getElementById('tries').textContent = tries;
     const feedback = document.getElementById('feedback');
@@ -723,11 +723,19 @@ function checkAnswer(answer) {
         score++;
         document.getElementById('score').textContent = score;
         feedback.textContent = '⭐ Great job! ⭐';
-        playSuccess();
-        setTimeout(nextRound, 1000);
+        // Say encouragement after word is spoken
+        const praise = ['good job', 'great', 'awesome', 'excellent', 'perfect', 'wonderful'][Math.floor(Math.random() * 6)];
+        // Speak the clicked word, then speak praise, then next round
+        speakWord(answer, () => {
+            speakWord(praise, () => {
+                setTimeout(nextRound, 0);
+            });
+        });
     } else {
         feedback.textContent = '❌ Try again!';
         playWrong();
+        // Speak the clicked word immediately
+        speakWord(answer);
     }
 }
 
