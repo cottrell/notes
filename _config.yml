@@ -6,6 +6,8 @@ url: "https://cottrell.github.io"
 
 theme: minima
 
+permalink: /:year/:month/:day/:title:output_ext
+
 plugins:
   - jekyll-feed
   - jekyll-mermaid
