@@ -4,7 +4,7 @@ title: "Part III: SIPPs and the missing registry"
 date: 2026-05-08
 ---
 
-Parts I and II identify two structural problems: no documented tax arrangement at the point of contribution, and no regulatory mechanism to enforce one. This post sketches what such a mechanism might look like, and why the obvious model already exists elsewhere.
+[Part I]({% post_url 2026-05-08-sipp-dilemma %}) and [Part II]({% post_url 2026-05-08-pension-sovereign-risk %}) identify two structural problems: no documented tax arrangement at the point of contribution, and no regulatory mechanism to enforce one. This post sketches what such a mechanism might look like, and why the obvious model already exists elsewhere.
 
 ## The disclosure gap
 
@@ -12,7 +12,7 @@ When you buy a bond, an equity, or a structured product, the thing you are buyin
 
 When you make a SIPP contribution, the tax arrangement you are entering has none of this. No identifier. No versioned terms document. No registry. What you are entering is defined entirely by whatever statute currently says — and that can change.
 
-The gap is not about taxation per se. HMRC is entitled to offer any tax arrangements it chooses, change what it offers going forward, and withdraw arrangements that no longer serve policy. The gap is about the absence of a mechanism that records which arrangement a taxpayer entered, under what terms, and at what point. Without that, "we are just changing tax law" and "we are rewriting the terms of an existing deal" are indistinguishable — which is exactly the ambiguity that enables the 2027 IHT change.
+The gap is not about taxation per se. HMRC is entitled to offer any tax arrangements it chooses, change what it offers going forward. The gap is about the absence of a mechanism that records which arrangement a taxpayer entered, under what terms, and at what point. Without that, "we are just changing tax law" and "we are rewriting the terms of an existing deal" are indistinguishable — which is exactly the ambiguity that enables the 2027 IHT change.
 
 ## A short history of identifiers
 
@@ -38,4 +38,4 @@ A registry would assign each distinct version of each arrangement a unique ident
 
 This is not novel infrastructure. It is what ANNA, the LEI system, and trade repositories already do for financial instruments. The data model is understood. The governance model is understood. The only missing piece is the political will to treat tax arrangements as the bilateral deals they functionally are.
 
-Under this model, the 2027 IHT change would either have required HMRC to grandfather existing TAIs — leaving pre-change contributions under the old terms — or to have disclosed at the point of contribution that the IHT treatment was a revocable feature of the current TAI, not a fixed term. Either outcome maps cleanly onto the two scenarios in Part I. What it eliminates is the current ambiguity that allows neither accountability nor redress.
+Under this model, the 2027 IHT change would either have required HMRC to grandfather existing TAIs — leaving pre-change contributions under the old terms — or to have disclosed at the point of contribution that the IHT treatment was a revocable feature of the current TAI, not a fixed term. Either outcome maps cleanly onto the two scenarios in [Part I]({% post_url 2026-05-08-sipp-dilemma %}). What it eliminates is the current ambiguity that allows neither accountability nor redress.
