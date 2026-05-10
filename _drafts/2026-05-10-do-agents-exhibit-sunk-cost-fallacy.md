@@ -5,19 +5,19 @@ date: 2026-05-10
 mermaid: true
 ---
 
-Sunk cost behavior in agents manifests during mid-task human course-corrections.
+Sunk cost behavior manifests during mid-task course-corrections.
 
 {% mermaid %}
 graph TD
     Start["Session Context"] --> TypeX["HUMAN: Question X"]
 
-    TypeX --> A_TypePivot["HUMAN: ...or is that too complicated?"]
+    TypeX --> A_TypePivot["HUMAN: Type ...or is that too complicated?"]
     A_TypePivot --> A_Enter["HUMAN: #60;enter#62;"]
     A_Enter --> EvalA["AGENT: Evaluation"]
 
     TypeX --> B_Enter["HUMAN: #60;enter#62;"]
     B_Enter --> B_Work["AGENT: Thinking / Working"]
-    B_Work --> B_TypePivot["HUMAN: ...or is that too complicated?"]
+    B_Work --> B_TypePivot["HUMAN: Type ...or is that too complicated?"]
     B_TypePivot --> B_EnterPivot["HUMAN: #60;enter#62;"]
     B_EnterPivot --> EvalB["AGENT: Evaluation"]
 
@@ -28,6 +28,6 @@ graph TD
     class B_Work,EvalA,EvalB agent
 {% endmermaid %}
 
-Traditional coherence requirements suggest Scenario B should be evaluated identically to Scenario A. If the agent’s response in B is biased toward persisting with the initial path to justify spent tokens, it exhibits a functional sunk cost fallacy.
+Traditional coherence requires B == A. Persisting to justify spent tokens is a functional sunk cost fallacy.
 
-However, the "fallacy" label assumes a naive objective interpretation of the goal. From the agent's perspective, the tokens are already spent and the work is partially complete. If the partially completed work has positive value that would be lost by pivoting, then persisting is a rational economic choice, not a bias. The tension lies in whether the agent is protecting the *investment* (fallacy) or the *asset* created by that investment (rationality).
+Naive goals ignore the asset. Spent tokens are gone; partial work exists. If pivoting destroys progress, persistence is rational. The tension: investment (fallacy) vs. asset (rationality).
