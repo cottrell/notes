@@ -139,6 +139,12 @@ date: 2025-06-26
             width: 100% !important; 
             height: 100% !important; 
         }
+        .expected-log-return {
+            font-size: 0.75em;
+            color: var(--accent-color);
+            height: 1.2em;
+        }
+        .hints-hidden .expected-log-return { visibility: hidden; }
 
         #wealth-chart-container {
             width: 100%;
@@ -295,6 +301,7 @@ date: 2025-06-26
             this.loadDependencies();
             
             this.startButton.onclick = () => this.startGame();
+            document.getElementById('toggle-hints-btn').onclick = () => this.toggleHints();
             
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !this.DOM) this.startGame();
@@ -331,7 +338,6 @@ date: 2025-06-26
                 wealthChart: document.getElementById('wealth-chart'),
                 meter: document.getElementById('decay-meter-fill')
             };
-            document.getElementById('toggle-hints-btn').onclick = () => this.toggleHints();
             document.getElementById('about-btn').onclick = () => document.getElementById('about-modal').style.display = 'flex';
             document.getElementById('close-about').onclick = () => document.getElementById('about-modal').style.display = 'none';
             this.resetGame();
