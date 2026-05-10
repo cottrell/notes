@@ -4,7 +4,7 @@ title: "Part III: SIPPs and the missing registry"
 date: 2026-05-08
 ---
 
-[Part I]({% post_url 2026-05-08-sipp-dilemma %}) and [Part II]({% post_url 2026-05-08-pension-sovereign-risk %}) identify two structural problems: no documented tax arrangement at the point of contribution, and no regulatory mechanism to enforce one. This post sketches what such a mechanism might look like, and why the obvious model already exists elsewhere.
+[Part I]({% post_url 2026-05-08-I-sipp-dilemma %}) and [Part II]({% post_url 2026-05-08-II-pension-sovereign-risk %}) identify two structural problems: no documented tax arrangement at the point of contribution, and no regulatory mechanism to enforce one. This post sketches what such a mechanism might look like, and why the obvious model already exists elsewhere.
 
 ## The disclosure gap
 
@@ -44,6 +44,6 @@ HMRC already assigns identifiers to tax arrangements under DOTAS (Disclosure of 
 
 Modern HMRC systems — Making Tax Digital, Real Time Information, the pensions dashboards programme — already handle far more complex per-taxpayer data linkages. Versioning tax terms at point of contribution would be a modest extension of existing infrastructure, not a new build.
 
-Under this model, the 2027 IHT change would either have required HMRC to grandfather existing TAIs — leaving pre-change contributions under the old terms — or to have disclosed at the point of contribution that the IHT arrangement was a revocable feature of the current TAI, not a fixed term. Either outcome maps cleanly onto the two scenarios in [Part I]({% post_url 2026-05-08-sipp-dilemma %}). What it eliminates is the current ambiguity that allows neither accountability nor redress.
+Under this model, the 2027 IHT change would either have required HMRC to grandfather existing TAIs — leaving pre-change contributions under the old terms — or to have disclosed at the point of contribution that the IHT arrangement was a revocable feature of the current TAI, not a fixed term. Either outcome maps cleanly onto the two scenarios in [Part I]({% post_url 2026-05-08-I-sipp-dilemma %}). What it eliminates is the current ambiguity that allows neither accountability nor redress.
 
 A TAI registry of this kind could reasonably be proposed as part of any future ISA or pension simplification review. The infrastructure exists. The precedent exists. The question is whether transparency about the terms of government-promoted savings deals is treated as a feature or a liability.
