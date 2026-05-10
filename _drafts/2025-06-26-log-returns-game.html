@@ -243,11 +243,19 @@ date: 2025-06-26
         </div>
         <div class="settings-bar">
             <div class="settings-row">
-                <span class="settings-label">Round:</span>
+                <span class="settings-label">Period:</span>
                 <button class="tog" data-dur="1000">1s</button>
                 <button class="tog on" data-dur="3000">3s</button>
                 <button class="tog" data-dur="10000">10s</button>
                 <button class="tog" data-dur="Infinity">∞</button>
+            </div>
+            <div class="settings-row">
+                <span class="settings-label">Rounds:</span>
+                <button class="tog" data-rounds="10">10</button>
+                <button class="tog" data-rounds="20">20</button>
+                <button class="tog on" data-rounds="40">40</button>
+                <button class="tog" data-rounds="100">100</button>
+                <button class="tog" data-rounds="Infinity">∞</button>
             </div>
             <div class="settings-row">
                 <span class="settings-label">Types:</span>
@@ -265,6 +273,17 @@ date: 2025-06-26
                 <p>Build intuition about compounding and decay.</p>
                 <button id="start-button">Start Game</button>
             </div>
+        </div>
+    </div>
+
+    <div id="about-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; justify-content:center; align-items:center; padding:16px;">
+        <div style="background:var(--panel-color); padding:20px; border-radius:12px; max-width:480px; border:1px solid var(--border-color); max-height:90vh; overflow-y:auto; font-size:0.88em; line-height:1.55;">
+            <h2 style="margin-top:0; color:var(--primary-color);">Log Returns Arcade</h2>
+            <p>Each round pick the better of two bets. The right answer is the one with the higher <strong>expected log return</strong> E[log r] — the geometric growth rate that governs what actually happens to wealth compounded over time, as opposed to the arithmetic mean which can look good on average while being ruinous for any individual path.</p>
+            <p>This is the core of <a href="https://ergodicityeconomics.com/" target="_blank" style="color:var(--primary-color);">Ergodicity Economics</a> (Ole Peters, London Mathematical Laboratory / Santa Fe Institute): maximise time-average growth, not ensemble-average return.</p>
+            <p><strong style="color:var(--accent-color);">Long/short mode:</strong> picking A means long A, short B — P&amp;L is the spread. Green = always optimal, red = always worst, blue = you. All three share the same random draws so the gap is pure decision quality.</p>
+            <p style="color:var(--muted-color); font-size:0.85em; margin-bottom:12px;">Press H to toggle hints showing E[log r] for each option.</p>
+            <button id="close-about">Close</button>
         </div>
     </div>
 
@@ -299,15 +318,9 @@ date: 2025-06-26
                 <div class="expected-log-return" id="log-return-b"></div>
             </div>
         </div>
-        <div id="wealth-chart-container">
+        <div id="wealth-chart-container" style="position:relative;">
+            <button id="log-toggle" class="secondary" style="position:absolute;top:4px;right:4px;z-index:10;font-size:0.65em;padding:2px 6px;">Log</button>
             <canvas id="wealth-chart"></canvas>
-        </div>
-        <div id="about-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:100; justify-content:center; align-items:center;">
-            <div style="background:var(--panel-color); padding:20px; border-radius:12px; max-width:500px; border:1px solid var(--border-color);">
-                <h2>About</h2>
-                <p>Experimental intuition builder for compounding and log returns.</p>
-                <button id="close-about">Close</button>
-            </div>
         </div>
     `;
 
@@ -315,6 +328,7 @@ date: 2025-06-26
     const DECAY_MS = 3000;
     const INITIAL_WEALTH = 1000;
     const GAME_SECONDS_PER_YEAR = 90;
+    const LONG_SHORT_MODE = true; // true: long chosen, short other; false: long chosen only
 
     class ChoiceFactory {
         #randn() {
@@ -334,7 +348,8 @@ date: 2025-06-26
             const cdfPoints = []; let acc = 0;
             for(let i=0; i<normPs.length; i++) { acc += normPs[i] * (i > 0 ? (xs[i] - xs[i-1]) : 0); cdfPoints.push(acc); }
             const normalizedCdf = cdfPoints.map(p => p / cdfPoints.at(-1));
-            return { type: 'pdf', xs, ps: normPs, cdf: normalizedCdf, sample: () => Math.exp(xs[normalizedCdf.findIndex(p => Math.random() <= p)]), getExpectedLogReturn: () => expectedLogReturn, display: 'PDF' };
+            const quantile = (u) => { let i = normalizedCdf.findIndex(p => u <= p); return Math.exp(xs[i < 0 ? xs.length - 1 : i]); };
+            return { type: 'pdf', xs, ps: normPs, cdf: normalizedCdf, sampleFromU: quantile, getExpectedLogReturn: () => expectedLogReturn, display: 'PDF' };
         }
         generateEmpiricalStockChoice() {
             const steps = 200, startPrice = 100;
@@ -348,15 +363,15 @@ date: 2025-06-26
                 logReturns.push(lr);
             }
             const avgLogRet = logReturns.reduce((a,b)=>a+b,0) / logReturns.length;
-            return { type: 'empirical', prices, multipliers, sample: () => multipliers[Math.floor(Math.random() * multipliers.length)], getExpectedLogReturn: () => avgLogRet, display: 'Stock' };
+            return { type: 'empirical', prices, multipliers, sampleFromU: (u) => multipliers[Math.min(Math.floor(u * multipliers.length), multipliers.length - 1)], getExpectedLogReturn: () => avgLogRet, display: 'Stock' };
         }
         generateAdditionChoice() {
             const value = Math.floor(Math.random() * 13) + 3;
-            return { type: 'add', value, display: `+${value}`, sample: () => value, getExpectedLogReturn: () => value };
+            return { type: 'add', value, display: `+${value}`, sampleFromU: () => value, getExpectedLogReturn: () => value };
         }
         generateSimpleMultiplierChoice() {
             const value = 0.995 + Math.random() * 0.01;
-            return { type: 'multiply', value, display: `x${value.toFixed(3)}`, sample: () => value, getExpectedLogReturn: () => Math.log(value) };
+            return { type: 'multiply', value, display: `x${value.toFixed(3)}`, sampleFromU: () => value, getExpectedLogReturn: () => Math.log(value) };
         }
     }
 
@@ -369,12 +384,15 @@ date: 2025-06-26
             this.state = {};
             this.hintsVisible = true;
             this.roundDuration = 3000;
+            this.maxRounds = 40;
             this.enabledTypes = new Set(['pdf', 'cdf', 'empirical', 'add', 'multiply']);
             this.loadDependencies();
             this.initSettings();
 
             this.startButton.onclick = () => this.startGame();
             document.getElementById('toggle-hints-btn').onclick = () => this.toggleHints();
+            document.getElementById('about-btn').onclick = () => document.getElementById('about-modal').style.display = 'flex';
+            document.getElementById('close-about').onclick = () => document.getElementById('about-modal').style.display = 'none';
 
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !this.DOM) this.startGame();
@@ -393,6 +411,14 @@ date: 2025-06-26
                     btn.classList.add('on');
                     const val = btn.dataset.dur;
                     this.roundDuration = val === 'Infinity' ? Infinity : parseInt(val);
+                };
+            });
+            document.querySelectorAll('[data-rounds]').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('[data-rounds]').forEach(b => b.classList.remove('on'));
+                    btn.classList.add('on');
+                    const val = btn.dataset.rounds;
+                    this.maxRounds = val === 'Infinity' ? Infinity : parseInt(val);
                 };
             });
             document.querySelectorAll('[data-type]').forEach(btn => {
@@ -435,9 +461,14 @@ date: 2025-06-26
                 wealthChart: document.getElementById('wealth-chart'),
                 meter: document.getElementById('decay-meter-fill')
             };
-            document.getElementById('about-btn').onclick = () => document.getElementById('about-modal').style.display = 'flex';
-            document.getElementById('close-about').onclick = () => document.getElementById('about-modal').style.display = 'none';
             this.resetGame();
+            document.getElementById('log-toggle').onclick = () => {
+                const chart = this.wealthChartInstance;
+                const isLog = chart.options.scales.y.type === 'logarithmic';
+                chart.options.scales.y.type = isLog ? 'linear' : 'logarithmic';
+                document.getElementById('log-toggle').textContent = isLog ? 'Log' : 'Linear';
+                chart.update();
+            };
         }
 
         resetGame() {
@@ -462,9 +493,9 @@ date: 2025-06-26
                 type: 'line',
                 data: { 
                     datasets: [
-                        { label: 'Your Wealth', data: this.wealthHistory, borderColor: '#58c7ff', tension: 0.1, pointRadius: 0, borderWidth: 2, z: 10 },
-                        { label: 'Best Strategy', data: this.bestWealthHistory, borderColor: 'rgba(156, 255, 87, 0.2)', tension: 0.1, pointRadius: 0, borderWidth: 1, fill: false },
-                        { label: 'Worst Strategy', data: this.worstWealthHistory, borderColor: 'rgba(255, 68, 68, 0.2)', tension: 0.1, pointRadius: 0, borderWidth: 1, fill: false }
+                        { label: 'You', data: this.wealthHistory, borderColor: '#58c7ff', tension: 0.1, pointRadius: 0, borderWidth: 2.5, z: 10 },
+                        { label: 'Best', data: this.bestWealthHistory, borderColor: 'rgba(156, 255, 87, 0.75)', tension: 0.1, pointRadius: 0, borderWidth: 2, fill: false },
+                        { label: 'Worst', data: this.worstWealthHistory, borderColor: 'rgba(255, 68, 68, 0.75)', tension: 0.1, pointRadius: 0, borderWidth: 2, fill: false }
                     ] 
                 },
                 options: { maintainAspectRatio: false, animation: false, scales: { y: { type: 'logarithmic' }, x: { type: 'linear' } }, plugins: { legend: { display: false } } }
@@ -472,7 +503,7 @@ date: 2025-06-26
         }
 
         nextRound() {
-            if (this.state.round > 40) return this.endGame();
+            if (this.state.round > this.maxRounds) return this.endGame();
             this.state.currentChoices = this.generateChoicePair();
             this.updateDisplay();
         }
@@ -517,6 +548,7 @@ date: 2025-06-26
             else this.state.streak = 0;
 
             this.state.activeDecayChoice = selected;
+            this.state.activeDecayOther = this.state.currentChoices[optionKey === 'A' ? 'B' : 'A'];
             this.state.bestChoice = A.getExpectedLogReturn() >= B.getExpectedLogReturn() ? A : B;
             this.state.worstChoice = A.getExpectedLogReturn() < B.getExpectedLogReturn() ? A : B;
 
@@ -524,6 +556,7 @@ date: 2025-06-26
             this.DOM.activeBonusText.classList.add('active-pulse');
             
             this.state.activeAddRate = selected.type === 'add' ? selected.value / 3 : null;
+            this.state.activeOtherAddRate = this.state.activeDecayOther.type === 'add' ? this.state.activeDecayOther.value / 3 : null;
             this.state.bestAddRate = this.state.bestChoice.type === 'add' ? this.state.bestChoice.value / 3 : null;
             this.state.worstAddRate = this.state.worstChoice.type === 'add' ? this.state.worstChoice.value / 3 : null;
 
@@ -542,15 +575,25 @@ date: 2025-06-26
                 this.DOM.meter.style.transform = `scaleX(${progress})`;
                 const dt = TICK_MS / 1000;
 
-                // All paths use expected log return so worst <= player <= best is guaranteed
-                const step = (choice, rate, current) => {
-                    if (rate != null) return current + rate * progress * dt;
-                    return current * Math.exp(choice.getExpectedLogReturn() * progress * dt);
-                };
-
-                this.state.wealth = step(this.state.activeDecayChoice, this.state.activeAddRate, this.state.wealth);
-                this.state.bestWealth = step(this.state.bestChoice, this.state.bestAddRate, this.state.bestWealth);
-                this.state.worstWealth = step(this.state.worstChoice, this.state.worstAddRate, this.state.worstWealth);
+                // Shared innovation u — comonotonic coupling so best(ω) >= player(ω) >= worst(ω)
+                const u = Math.random();
+                if (LONG_SHORT_MODE) {
+                    const step = (longC, shortC, longRate, shortRate, current) => {
+                        if (longRate != null) return current + (longRate - shortRate) * progress * dt;
+                        return current * Math.exp((Math.log(longC.sampleFromU(u)) - Math.log(shortC.sampleFromU(u))) * progress * dt);
+                    };
+                    this.state.wealth = step(this.state.activeDecayChoice, this.state.activeDecayOther, this.state.activeAddRate, this.state.activeOtherAddRate, this.state.wealth);
+                    this.state.bestWealth = step(this.state.bestChoice, this.state.worstChoice, this.state.bestAddRate, this.state.worstAddRate, this.state.bestWealth);
+                    this.state.worstWealth = step(this.state.worstChoice, this.state.bestChoice, this.state.worstAddRate, this.state.bestAddRate, this.state.worstWealth);
+                } else {
+                    const step = (choice, rate, current) => {
+                        if (rate != null) return current + rate * progress * dt;
+                        return current * Math.exp(Math.log(choice.sampleFromU(u)) * progress * dt);
+                    };
+                    this.state.wealth = step(this.state.activeDecayChoice, this.state.activeAddRate, this.state.wealth);
+                    this.state.bestWealth = step(this.state.bestChoice, this.state.bestAddRate, this.state.bestWealth);
+                    this.state.worstWealth = step(this.state.worstChoice, this.state.worstAddRate, this.state.worstWealth);
+                }
 
                 this.DOM.wealthDisplay.textContent = this.state.wealth.toFixed(2);
                 this.state.totalTime += dt;
