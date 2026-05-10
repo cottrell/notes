@@ -20,7 +20,7 @@ serve:
 	bundle exec jekyll serve --baseurl="" --watch --drafts --host=:: --port=$(PORT) --livereload --livereload-port=$(LIVERELOAD_PORT)
 
 build:
-	bundle exec jekyll build
+	bundle exec jekyll build --baseurl=""
 
 clean:
 	bundle exec jekyll clean
