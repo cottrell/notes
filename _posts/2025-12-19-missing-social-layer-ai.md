@@ -2,6 +2,7 @@
 layout: post
 title: "The social layer AI won't build"
 date: 2025-12-19
+last_updated: 2026-05-10
 tags: [ai, social, platforms]
 categories: [vibecoding]
 ---
