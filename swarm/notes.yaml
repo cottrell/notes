@@ -1,0 +1,35 @@
+session_name: notes
+windows:
+  - window_name: grid
+    layout: tiled
+    panes:
+      - shell_command: "codex --dangerously-bypass-approvals-and-sandbox"
+        nudge:
+          title: codex
+          agent: codex
+          monitor: true
+          babysit:
+            enabled: false
+            interval_secs: 600
+            long_prompt_file: prompts/worker_long.md
+            short_prompt_file: prompts/worker_short.txt
+      - shell_command: "claude --dangerously-skip-permissions"
+        nudge:
+          title: claude
+          agent: claude
+          monitor: true
+          babysit:
+            enabled: false
+            interval_secs: 600
+            long_prompt_file: prompts/worker_long.md
+            short_prompt_file: prompts/worker_short.txt
+      - shell_command: "gemini -y"
+        nudge:
+          title: gemini
+          agent: gemini
+          monitor: true
+          babysit:
+            enabled: false
+            interval_secs: 600
+            long_prompt_file: prompts/worker_long.md
+            short_prompt_file: prompts/worker_short.txt
