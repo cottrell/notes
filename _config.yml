@@ -11,6 +11,7 @@ permalink: /:year/:month/:day/:title:output_ext
 plugins:
   - jekyll-feed
   - jekyll-mermaid
+  - jekyll-last-modified-at
 
 markdown: kramdown
 
