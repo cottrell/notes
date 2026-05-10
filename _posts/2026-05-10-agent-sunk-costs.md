@@ -28,6 +28,6 @@ graph TD
     class B_Work,EvalA,EvalB agent
 {% endmermaid %}
 
-Traditional coherence requires B == A. Persisting to justify spent tokens is a functional sunk cost fallacy.
+Traditional coherence requires B == A. Persisting to justify spent tokens is a functional sunk cost fallacy—perhaps we should call this "escalation of commitment."
 
 Naive goals ignore the asset. Spent tokens are gone; partial work exists. If pivoting destroys progress, persistence is rational. The tension: investment (fallacy) vs. asset (rationality).
