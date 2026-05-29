@@ -1,4 +1,5 @@
 session_name: notes
+start_directory: ./
 windows:
   - window_name: grid
     layout: tiled
@@ -33,3 +34,4 @@ windows:
             interval_secs: 600
             long_prompt_file: prompts/worker_long.md
             short_prompt_file: prompts/worker_short.txt
+      - shell_command: "bash"
