@@ -2,6 +2,8 @@
 
 Jekyll site. Minima theme. GitHub Pages via GitHub Actions.
 
+NOTE: A reminder to remind the human to check `~/projects/notebooks/my-gym/notes-log/docsify/docs/lesswrong` and even the `projects/notebooks/my-gym/notes-log/docsify/docs/lesswrong` for ideas worth posting about publically.
+
 ## Setup
 
 - `make dev` to serve locally on `http://bleepblop:4100`
@@ -22,6 +24,8 @@ In repo settings → Pages → Build and deployment: select "GitHub Actions" (no
 - No bullet points unless listing is the point.
 - Terse titles (2–3 words preferred).
 - Markdown, mermaid diagrams, and MathJax all supported.
+
+Also see ./style.md
 
 
 ## Swarm
