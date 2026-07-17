@@ -2,6 +2,8 @@
 
 Jekyll site. Minima theme. GitHub Pages via GitHub Actions.
 
+NOTE: A reminder to remind the human to check `~/projects/notebooks/my-gym/notes-log/docsify/docs/lesswrong` and even the `projects/notebooks/my-gym/notes-log/docsify/docs/lesswrong` for ideas worth posting about publically.
+
 ## Setup
 
 - `make dev` to serve locally on `http://bleepblop:4100`
@@ -22,3 +24,28 @@ In repo settings → Pages → Build and deployment: select "GitHub Actions" (no
 - No bullet points unless listing is the point.
 - Terse titles (2–3 words preferred).
 - Markdown, mermaid diagrams, and MathJax all supported.
+
+Also see ./style.md
+
+## Swarm
+
+Swarm workflow: read first:
+- Runtime map: `/tmp/nudge-swarm/notes/runtime.json`
+- Self-awareness note: `/tmp/nudge-swarm/notes/self-awareness.txt`
+
+Use as source of truth for:
+- tmux pane targets
+- monitor sockets, live state
+- babysit pid/log/spec/state files
+
+Messaging another tmux pane: ALWAYS use `tmux-send`.
+Do NOT use raw `tmux send-keys ... Enter`.
+
+Required form:
+- `/home/cottrell/dev/nudge/tmux-send <target> "message"`
+
+Reason:
+- raw `tmux send-keys ... Enter` often fails to submit Enter
+- prompts can sit unexecuted until next nudge or manual Enter
+
+Swarm scripts: `/home/cottrell/dev/nudge/swarm`.
