@@ -24,10 +24,10 @@ windows:
             interval_secs: 600
             long_prompt_file: prompts/worker_long.md
             short_prompt_file: prompts/worker_short.txt
-      - shell_command: "gemini -y"
+      - shell_command: "agy --dangerously-skip-permissions"
         nudge:
-          title: gemini
-          agent: gemini
+          title: antigravity
+          agent: antigravity
           monitor: true
           babysit:
             enabled: false
