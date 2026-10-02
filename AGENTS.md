@@ -27,50 +27,21 @@ In repo settings → Pages → Build and deployment: select "GitHub Actions" (no
 
 Also see ./style.md
 
-
+<!-- AISWARM/NUDGE GUIDELINES START -->
 ## Swarm
 
-Swarm workflow: read first:
-- Runtime map: `/tmp/nudge-swarm/notes/runtime.json`
-- Self-awareness note: `/tmp/nudge-swarm/notes/self-awareness.txt`
+Swarm CLI: `aiswarm` (on PATH; `make install-aiswarm` from the nudge repo).
 
-Use as source of truth for:
-- tmux pane targets
-- monitor sockets, live state
-- babysit pid/log/spec/state files
+Read workflow first:
+- `aiswarm` — common commands cheat sheet
+- `aiswarm instructions overview` — required agent briefing
+- `aiswarm instructions tasks` — backlog dispatcher
+- `aiswarm this` — this swarm's config + runtime.json path
 
-Messaging another tmux pane: ALWAYS use `tmux-send`.
-Do NOT use raw `tmux send-keys ... Enter`.
+After start, machine map (not git): `/tmp/nudge-swarm/notes/runtime.json`
 
-Required form:
-- `/home/cottrell/dev/nudge/tmux-send <target> "message"`
-
-Reason:
-- raw `tmux send-keys ... Enter` often fails to submit Enter
-- prompts can sit unexecuted until next nudge or manual Enter
-
-Swarm scripts: `/home/cottrell/dev/nudge/swarm`.
-
-<!-- BACKLOG.MD GUIDELINES START -->
-<!-- backlog.md-instructions-version: 1.51.0 -->
-<CRITICAL_INSTRUCTION>
-
-## Backlog.md Workflow
-
-This project uses Backlog.md for task and project management.
-
-**At the beginning of each conversation in this project, run `backlog instructions overview` before answering or taking action. Re-read it only if you have not read it yet in the current conversation.**
-
-Use the overview to decide whether to search, read, create, or update Backlog tasks.
-
-Before task lifecycle actions, read the matching detailed guide:
-- `backlog instructions task-creation` before creating or splitting tasks
-- `backlog instructions task-execution` before planning, changing status or assignee, adding a plan or implementation notes, or implementing task work
-- `backlog instructions task-finalization` before checking acceptance criteria, writing final summaries, or moving tasks to terminal statuses
-
-Use `backlog <command> --help` before running unfamiliar commands. Help shows options, fields, and examples.
-
-Do not edit Backlog task, draft, document, decision, or milestone markdown files directly. Use the `backlog` CLI so metadata, relationships, and history stay consistent.
-
-</CRITICAL_INSTRUCTION>
-<!-- BACKLOG.MD GUIDELINES END -->
+Config: `.aiswarm/config.yaml` (cwd walk-up), `$AISWARM_CONFIG`, or explicit path.
+Messaging: `aiswarm send <pane> "msg"` (durable log). Do NOT raw `tmux send-keys`.
+Do NOT attach/stream a peer pane. Snapshot: `aiswarm capture`. Block until idle: `aiswarm wait`.
+TUI findings are not done: file backlog tasks/docs, ping the requester, then idle.
+<!-- AISWARM/NUDGE GUIDELINES END -->
