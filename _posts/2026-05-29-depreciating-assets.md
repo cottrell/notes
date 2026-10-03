@@ -4,7 +4,7 @@ title: Depreciating Assets
 date: 2026-05-29
 ---
 
-Thinking in the context of like an RL SARSA or state action value agent world.
+Thinking in terms of a SARSA agent and its state-action values.
 
 Had thought a long time ago along the lines of: tech is a depreciating asset.
 
@@ -16,11 +16,11 @@ You consult your policy and generate an action to take. You do the action. You
 *build* something. Either it brings you direct rewards or it does not. It might
 also bring you implicit rewards via an improvement in situation: you can now
 reach other good states more easily if you maintain both this thing *and* the
-knowledge and know how on how to extend it or build upon it to reach new good
+knowledge and know-how on how to extend it or build upon it to reach new good
 states. Classically, with humans as action factories, the cost of building the
 thing was high and the cost of maintaining both the thing and the knowledge and
-know how was also quite high. Now, for many problems, it will obviously be much
-lower.
+know-how was also quite high. Now, for many problems, those costs will obviously
+be much lower.
 
 So what are the broad effects on your optimal policy now? Or even your value
 function? You can try more things. At constant size/difficulty your cost of
