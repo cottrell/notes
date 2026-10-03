@@ -25,7 +25,7 @@ windows:
           title: claude light
           agent: claude
           monitor: true
-      - shell_command: "antigravity:heavy"
+      - shell_command: "antigravity:light"
         nudge:
           title: antigravity
           agent: antigravity
