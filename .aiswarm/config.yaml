@@ -9,29 +9,23 @@ windows:
         nudge:
           title: codex heavy
           agent: codex
-          monitor: true
       - shell_command: "codex:light"
         nudge:
           title: codex light
           agent: codex
-          monitor: true
       - shell_command: "claude:heavy"
         nudge:
           title: claude heavy
           agent: claude
-          monitor: true
       - shell_command: "claude:light"
         nudge:
           title: claude light
           agent: claude
-          monitor: true
       - shell_command: "antigravity:light"
         nudge:
           title: antigravity
           agent: antigravity
-          monitor: true
       - shell_command: "grok:heavy"
         nudge:
           title: grok
           agent: grok
-          monitor: true
