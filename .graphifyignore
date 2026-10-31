@@ -1,0 +1,14 @@
+.*
+node_modules/
+.venv/
+.vscode/
+.claude/
+cache/
+data/
+output/
+__pycache__/
+*.pyc
+*.json
+!package.json
+!tsconfig.json
+_site/
