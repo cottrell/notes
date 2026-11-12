@@ -9,23 +9,29 @@ windows:
         nudge:
           title: codex heavy
           agent: codex
+          categories: [heavy, codex]
       - shell_command: "codex:light"
         nudge:
           title: codex light
           agent: codex
+          categories: [light, codex]
       - shell_command: "claude:heavy"
         nudge:
           title: claude heavy
           agent: claude
+          categories: [heavy, claude]
       - shell_command: "claude:light"
         nudge:
           title: claude light
           agent: claude
+          categories: [light, claude]
       - shell_command: "antigravity:light"
         nudge:
-          title: antigravity
+          title: antigravity light
           agent: antigravity
+          categories: [light, antigravity]
       - shell_command: "grok:heavy"
         nudge:
-          title: grok
+          title: grok heavy
           agent: grok
+          categories: [heavy, grok]

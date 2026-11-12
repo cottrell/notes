@@ -9,3 +9,4 @@ vendor/
 /style.md
 
 graphify-out/
+.aiswarm/session-ids.json
