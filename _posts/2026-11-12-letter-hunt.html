@@ -1,0 +1,650 @@
+---
+layout: null
+title: "Letter Hunt"
+categories: [vibecoding]
+---
+{% raw %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Letter Hunt</title>
+<!--
+Prior art (searched 2026-11-12). None combines many-font letter hunt + drag-merge blobs.
+- TinyTap uppercase letters course: tap letters, varied fonts/colours. Closest to Find mode. https://campus.tinytap.com/course/1185
+- Twinkl "Letter Detectives": find-and-cover letters in different fonts. Paper worksheets. https://www.twinkl.com/resource/letter-detectives-identify-letters-in-different-fonts-find-and-cover-worksheets-prek-k-us-e-1755026441
+- I like ABC: falling letters, merge matching ones, a few fonts. Closest to Blob mode. https://apps.apple.com/ky/app/i-like-abc/id6478535542
+- Alphabets Recognition Activity: drag-match upper/lower, several fonts. https://apps.apple.com/app/apple-store/id1100602106
+- Find the Letter: tap the odd letter out. https://apps.apple.com/ag/app/find-the-letter/id1033168199
+- Keiki Letter Seek & Find: tap uppercase letters hidden in scenes. https://keiki.app/learning-games-for-kids/hidden-letters
+- Alphabetic: tap letters in order; reviewer wanted more fonts (gap). https://www.gamezebo.com/reviews/alphabetic-review/
+-->
+
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff8ec; font-family: system-ui, sans-serif; }
+  #bar { position: fixed; top: 0; left: 0; right: 0; min-height: 64px; display: flex; flex-wrap: wrap; row-gap: 6px; align-items: center; gap: 8px;
+         padding: 6px 10px; background: #fff; box-shadow: 0 2px 8px #0001; z-index: 20; }
+  .seg { display: flex; border-radius: 10px; overflow: hidden; border: 2px solid #ddd; flex-shrink: 0; }
+  .seg button, .btn { font: 600 18px system-ui; padding: 8px 12px; border: 0; background: #fff; color: #555; cursor: pointer; }
+  .seg button.on { background: #ffb703; color: #222; }
+  .btn { border-radius: 10px; border: 2px solid #ddd; font-size: 22px; padding: 4px 10px; }
+  #prompt { flex: 1; text-align: center; font: 700 32px system-ui; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #prompt b { font-family: 'Andika', sans-serif; }  /* literacy font: l vs I distinct */
+  #prompt small { font-size: 16px; font-weight: 500; color: #888; }
+  #stars { font-size: 20px; min-width: 50px; text-align: right; }
+  #board { position: fixed; top: 64px; left: 0; right: 0; bottom: 0; touch-action: none; }
+  .tile { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          background: #fff; box-shadow: 0 3px 10px #0002; user-select: none; -webkit-user-select: none; cursor: pointer;
+          transition: left .25s, top .25s, width .25s, height .25s, font-size .25s, opacity .3s; touch-action: none; }
+  .tile span { line-height: 1; pointer-events: none; white-space: nowrap; }
+  .tile.dragging { transition: none; z-index: 10; box-shadow: 0 8px 24px #0003; }
+  .tile.found { opacity: .45; box-shadow: inset 0 0 0 5px #2a9d8f; }
+  .tile.pop { animation: pop .35s; }
+  .tile.wiggle { animation: wiggle .35s; }
+  .tile.bubble { animation: bubble .45s; }
+  .win .tile { animation: bounce .6s infinite alternate; }
+  @keyframes pop { 50% { transform: scale(1.35); } }
+  @keyframes wiggle { 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+  @keyframes bubble { 30% { transform: scale(1.3, .8); } 60% { transform: scale(.9, 1.15); } }
+  @keyframes bounce { to { transform: translateY(-16px); } }
+  .tile.spawn { animation: spawnIn .4s; }
+  .tile.burst { animation: burstOut .45s forwards; pointer-events: none; }
+  @keyframes spawnIn { from { transform: scale(0); } }
+  .tile.ready { z-index: 5; box-shadow: 0 0 0 6px #ffb703, 0 0 28px #ffb703aa; }
+  @keyframes burstOut { to { transform: scale(1.7); opacity: 0; } }
+  .spark { position: absolute; width: 16px; height: 16px; margin: -8px; border-radius: 50%; pointer-events: none;
+           transition: transform .6s ease-out, opacity .6s; }
+  #settings { position: fixed; right: 10px; z-index: 25; background: #fff; border-radius: 14px; padding: 12px 16px;
+              box-shadow: 0 6px 24px #0003; font: 15px system-ui; width: min(320px, calc(100vw - 20px)); }
+  #settings label { display: grid; grid-template-columns: 1fr 44px; gap: 2px 8px; align-items: center; margin: 8px 0; }
+  #settings input[type=range] { grid-column: 1 / -1; width: 100%; }
+  #settings output { text-align: right; color: #888; }
+  #recorder { position: fixed; left: 10px; right: 10px; top: 70px; max-height: calc(100vh - 90px); overflow: auto; z-index: 26;
+              background: #fff; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 24px #0003; font: 15px system-ui; }
+  #recorder .rhead { display: flex; gap: 10px; align-items: center; } #recorder .rhead span { flex: 1; color: #666; }
+  #recorder .warn { color: #d62828; }
+  #recorder .rgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+  #recorder .rcell { display: flex; align-items: center; gap: 4px; border: 2px solid #eee; border-radius: 10px; padding: 4px 8px; }
+  #recorder .rcell span { flex: 1; font: 26px 'Andika', sans-serif; }
+  #recorder .rcell button { border: 0; background: #f3f3f3; border-radius: 8px; font-size: 16px; padding: 4px 7px; cursor: pointer; }
+  #recorder .rcell button.on { background: #e63946; color: #fff; }
+  #recorder .rcell.has { border-color: #2a9d8f; }
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #fff8ecee; z-index: 30; }
+  #overlay button { font: 700 40px system-ui; padding: 24px 48px; border-radius: 24px; border: 0; background: #ffb703; cursor: pointer; }
+  @media (max-width: 600px) { #prompt { font-size: 22px; order: 9; flex-basis: 100%; } .seg button { padding: 6px 8px; font-size: 15px; } }
+</style>
+</head>
+<body>
+<div id="bar">
+  <div class="seg" id="contentSeg" title="Letters, letter teams, words"><button data-v="letters">a</button><button data-v="teams">sh</button><button data-v="words">cat</button></div>
+  <div class="seg" id="modeSeg"><button data-v="find">Find</button><button data-v="blob">Blob</button></div>
+  <div class="seg" id="caseSeg"><button data-v="lower">abc</button><button data-v="upper">ABC</button><button data-v="mixed">aBc</button></div>
+  <div class="seg" id="saySeg" title="Say the sound, the letter name, or an example word"><button data-v="sound">ah</button><button data-v="name">A</button><button data-v="word">🍎</button></div>
+  <div id="prompt"></div>
+  <button class="btn" id="sayBtn" title="Say again">🔊</button>
+  <button class="btn" id="newBtn" title="New round">↻</button>
+  <span id="stars"></span>
+  <button class="btn" id="setBtn" title="Settings">⚙</button>
+</div>
+<div id="board"></div>
+<div id="overlay"><button id="startBtn">Loading…</button></div>
+<script>
+// ---------- CONFIG: edit here ----------
+const CONFIG = {
+  // Read Write Inc. order (Plumcroft uses RWI). Set 1 sounds then Set 2 "special friends". From memory of the
+  // RWI Speed Sounds charts: check against the sheets school sends home and fix here. No q alone (RWI teaches qu).
+  order: ('m a s d t i n p g o c k u b f e l h sh r j v y w th z ch qu x ng nk ' +
+          'ay ee igh ow oo ar or air ir ou oy').split(' '),
+  taught: 42,          // how far through `order` the child has got; ⚙ "Sounds taught". Newest few get extra practice.
+  newCount: 3,         // the last N taught sounds count as "new" (picked about twice as often)
+  // Letter teams: [TTS sound spelling, example word]. ck isn't in the order but is needed to sound out duck/back.
+  // Set 2 ow = "blow", ou = "cloud" (RWI). Set 3 (ai, oa, ew, a-e ...) not added yet.
+  teams: { sh: ['shh', 'ship'], th: ['thh', 'thumb'], ch: ['chuh', 'chip'], qu: ['kwuh', 'queen'], ng: ['ing', 'ring'],
+    nk: ['ink', 'pink'], ck: ['kuh', 'duck'], ay: ['ay', 'play'], ee: ['ee', 'bee'], igh: ['eye', 'night'], ow: ['oh', 'snow'],
+    oo: ['oo', 'moon'], ar: ['ar', 'car'], or: ['or', 'fork'], air: ['air', 'chair'], ir: ['er', 'bird'], ou: ['ow', 'cloud'],
+    oy: ['oy', 'toy'] },
+  teamConfusables: { sh: ['ch', 'th'], ch: ['sh', 'th'], th: ['sh', 'ch'], ng: ['nk'], nk: ['ng'], qu: ['ou'],
+    ay: ['oy', 'ar'], ee: ['oo'], igh: ['ng'], ow: ['ou', 'oo', 'or'], oo: ['ee', 'ow'], ar: ['or', 'air'],
+    or: ['ar', 'ow'], air: ['ar', 'ir'], ir: ['air', 'ar'], ou: ['ow', 'oo'], oy: ['ay', 'ow'] },
+  // Words by level. Rhyme families on purpose: lookalikes (same length, 1 letter different) become distractors.
+  // Levels 1-3 only use words whose sounds are all taught (falls back to the full list if too few).
+  // Level 5 = tricky words (RWI "red words"): can't be sounded out, so never Fred Talked.
+  words: { level: 1, tricky: 5, lists: [
+    'cat hat bat mat sat pig big dig wig sun bun run fun dog log fog hog pen hen ten den cup pup bed red fox box',
+    'stop step frog flag clap clip drum drip swim slim crab grab milk silk jump lamp tent nest best sand hand band plum spin',
+    'ship shop chip chop fish dish chin thin moth bath ring sing song king duck back sock pink sink think moon soon feet see car star fork play day night light snow boy toy chair hair bird girl shout out',
+    'rabbit garden sunset pocket kitten dragon window rocket monkey picnic tiger spider pirate chicken farmer jumping',
+    'the to no go into he she we me be was my you they all are said',
+  ].map(l => l.split(' ')) },
+  recordMs: 1800,      // max length of one recorded sound
+  googleFonts: ['Andika', 'Atkinson Hyperlegible', 'Comic Neue', 'Patrick Hand', 'Lora', 'Merriweather', 'Roboto Slab',
+    'Playfair Display', 'Courier Prime', 'Fredoka', 'Josefin Sans', 'Abril Fatface', 'Caveat', 'Oswald', 'Nunito',
+    'Bree Serif', 'Kalam', 'Righteous', 'Special Elite', 'Bitter'],
+  // Gothic/blackletter, western, pixel, horror, outline... `Name:axes` when a family lacks weight 400.
+  wildFonts: ['UnifrakturMaguntia', 'UnifrakturCook:wght@700', 'Pirata One', 'Grenze Gotisch', 'New Rocker', 'Germania One',
+    'Metal Mania', 'Cinzel Decorative', 'Monoton', 'Bungee Shade', 'Bungee Inline', 'Rye', 'Creepster', 'Lobster', 'Pacifico',
+    'Press Start 2P', 'VT323', 'Silkscreen', 'Bangers', 'Ewert', 'Henny Penny', 'Faster One', 'Fascinate', 'Sancreek', 'Nosifer',
+    'Eater', 'Fredericka the Great', 'Rubik Glitch', 'Codystar', 'Shojumaru', 'Ribeye Marrow', 'Zilla Slab Highlight'],
+  wildRate: 0.35,      // chance a tile uses a wild font; 0 = tame only
+  // No real lowercase (draws G for g): capitals only. Found via fontTools outline diff + a rendered specimen sheet.
+  // Dropped entirely: Rubik Puddles (illegible at tile size).
+  capsOnlyFonts: ['Bangers', 'Bungee Inline', 'Bungee Shade', 'Codystar', 'Ewert', 'Nosifer', 'Silkscreen', 'Cinzel Decorative',
+    'Metal Mania', 'Monoton', 'Creepster', 'Eater', 'Shojumaru'],
+  systemFonts: ['serif', 'sans-serif', 'monospace'],
+  // rotate: ask for one letter at a time, target changes every tap (forces a fresh sound→letter recall each time).
+  // rotate false: classic "find all the g's" (one recall, then visual scanning). targets only used then.
+  letters: 24,         // tiles on screen (density). Both modes. Also in ⚙ settings.
+  kinds: 5,            // different letters on screen at once (variety). Both modes except classic find.
+  find: { rotate: true, prompts: 8, targets: [4, 7], confusableRate: 0.35 },
+  showTarget: false,   // false = spoken requests only, letter not shown in the bar (listen, don't match by eye)
+  anLetters: 'aefhilmnorsx',  // letter names starting with a vowel sound: "an M", "a G"
+  // continuous: a letter fully merged bursts and a fresh group spawns; false = round ends when all merged.
+  // speakDelay: ms before naming a picked-up letter, so the child can say it first (time-delay prompting).
+  // popOnRequest: finished blobs wait; once popWhen are waiting, voice asks "Pop the m!" and only that one bursts.
+  blob: { continuous: true, sizeJitter: 0.4,
+          pitchPower: 0.7,  // voice pitch ∝ (base/size)^pitchPower: bigger blob, lower voice
+          speakDelay: 1500, popOnRequest: true, popWhen: 2 },
+  fill: 0.38,          // fraction of board area covered by tiles
+  sizeJitter: 0.2,     // ± fraction of base radius
+  rotJitter: 10,       // ± degrees
+  // Random per tile, never per letter: colour must not be a cue for identity.
+  colors: ['#e63946', '#1d3557', '#2a9d8f', '#f4a261', '#6a4c93', '#e76f51', '#118ab2', '#06a77d', '#d62828', '#3a0ca3'],
+  speech: { lang: 'en-GB', rate: 0.8, pitch: 1.1, sayOnTap: true, sayWrong: true },
+  names: {},           // spoken overrides, e.g. { a: 'ay', ch: 'C H' }
+  // [sound, word]. Sounds are TTS spellings, approximate: TTS can't say pure sounds (school wants "mmm", not "muh").
+  // Stretchy sounds spelled long (mmm, sss); stop sounds (b d g p t k) unavoidably get an "uh". Recordings override all this.
+  phonics: { a: ['ah', 'apple'], b: ['buh', 'ball'], c: ['kuh', 'cat'], d: ['duh', 'dog'], e: ['eh', 'egg'],
+    f: ['fff', 'fish'], g: ['guh', 'goat'], h: ['huh', 'hat'], i: ['ih', 'insect'], j: ['juh', 'jam'], k: ['kuh', 'kite'],
+    l: ['lll', 'lion'], m: ['mmm', 'moon'], n: ['nnn', 'nest'], o: ['aw', 'octopus'], p: ['puh', 'pig'], q: ['kwuh', 'queen'],
+    r: ['rrr', 'rabbit'], s: ['sss', 'sun'], t: ['tuh', 'tiger'], u: ['uh', 'umbrella'], v: ['vvv', 'van'], w: ['wuh', 'web'],
+    x: ['ks', 'fox'], y: ['yuh', 'yo-yo'], z: ['zzz', 'zebra'] },
+  confusables: { b: 'dpqh', d: 'bpqa', p: 'bdqg', q: 'bdpg', m: 'nw', n: 'mhu', u: 'nv', w: 'mv', g: 'qpj', a: 'oed',
+    e: 'ca', i: 'lj', l: 'it', j: 'ig', t: 'fl', f: 't', h: 'nb', c: 'eo', o: 'ca', v: 'uwy', y: 'vg', s: 'z', z: 's' },
+};
+
+// ---------- SETTINGS: ⚙ panel rows. [CONFIG path, label, min, max, step] or [path, label, 'bool']. Saved per browser. ----------
+const SETTINGS = [
+  ['taught', 'Sounds taught (RWI order)', 2, 42, 1],
+  ['letters', 'Tiles on screen', 6, 60, 1],
+  ['kinds', 'Different kinds', 2, 12, 1],
+  ['wildRate', 'Wild fonts', 0, 1, 0.05],
+  ['speech.rate', 'Voice speed', 0.4, 1.4, 0.05],
+  ['words.level', 'Words: level (5 = tricky)', 1, 5, 1],
+  ['find.prompts', 'Find: taps per round', 3, 20, 1],
+  ['blob.speakDelay', 'Blob: naming delay (ms)', 0, 3000, 250],
+  ['find.rotate', 'Find: one letter at a time', 'bool'],
+  ['blob.popOnRequest', 'Blob: pop on request', 'bool'],
+  ['showTarget', 'Show the letter in the bar', 'bool'],
+];
+
+// ---------- utils ----------
+const $ = s => document.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const randInt = ([a, b]) => Math.floor(rand(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const store = { get: (k, d) => { try { return localStorage.getItem('lh.' + k) ?? d; } catch { return d; } },
+                set: (k, v) => { try { localStorage.setItem('lh.' + k, v); } catch {} },
+                del: k => { try { localStorage.removeItem('lh.' + k); } catch {} } };
+const fontName = spec => spec.split(':')[0];
+const cfgPath = path => { const ks = path.split('.'), last = ks.pop(); return [ks.reduce((o, k) => o[k], CONFIG), last]; };
+const cfgGet = path => { const [o, k] = cfgPath(path); return o[k]; };
+const cfgSet = (path, v) => { const [o, k] = cfgPath(path); o[k] = v; };
+const DEFAULTS = Object.fromEntries(SETTINGS.map(([p]) => [p, cfgGet(p)]));  // only changed values are saved, so CONFIG edits still apply
+try { Object.entries(JSON.parse(store.get('settings', '{}'))).forEach(([p, v]) => cfgSet(p, v)); } catch {}
+const FONTS = [...CONFIG.googleFonts.map(f => `"${f}"`), ...CONFIG.systemFonts];
+const WILD = CONFIG.wildFonts.map(fontName);
+const WILD_LOWER = WILD.filter(f => !CONFIG.capsOnlyFonts.includes(f));
+const pickFont = text => {
+  const wild = text === text.toUpperCase() ? WILD : WILD_LOWER;
+  return wild.length && Math.random() < CONFIG.wildRate ? `"${pick(wild)}"` : pick(FONTS);
+};
+
+// ---------- audio ----------
+let actx;
+function tone(f0, f1, dur, type = 'sine', vol = 0.2, delay = 0) {
+  if (!actx) return;
+  const t = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur);
+}
+const sfx = {
+  ding: () => { tone(880, 1320, 0.15); tone(1320, 1760, 0.2, 'sine', 0.15, 0.1); },
+  buzz: () => tone(160, 120, 0.2, 'square', 0.06),
+  blurb: n => { const f = Math.max(150, 500 - n * 30); tone(f, f * 2, 0.12, 'sine', 0.25); tone(f * 2, f * 0.8, 0.18, 'sine', 0.2, 0.1); },
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.25, 'triangle', 0.18, i * 0.12)),
+  burst: () => { tone(500, 1600, 0.08, 'sine', 0.25); [1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, f * 1.01, 0.3, 'triangle', 0.1, 0.06 + i * 0.05)); },
+};
+// ---------- content: letters | teams | words ----------
+const taughtList = () => CONFIG.order.slice(0, Math.max(2, CONFIG.taught));
+const TEAM_KEYS = Object.keys(CONFIG.teams).sort((a, b) => b.length - a.length);
+// Split a word into sounds, longest letter team first: night → n igh t, chair → ch air.
+function segment(w) {
+  const out = [];
+  for (let i = 0; i < w.length;) { const t = TEAM_KEYS.find(t => w.startsWith(t, i)) ?? w[i]; out.push(t); i += t.length; }
+  return out;
+}
+const isTricky = () => CONFIG.words.level === CONFIG.words.tricky;
+function tokens() {
+  if (S.content === 'words') {
+    const list = CONFIG.words.lists[CONFIG.words.level - 1], T = new Set(taughtList());
+    const ok = isTricky() ? list : list.filter(w => segment(w).every(g => T.has(g)));
+    return ok.length >= 4 ? ok : list;
+  }
+  const multi = S.content === 'teams', T = taughtList().filter(k => (k.length > 1) === multi);
+  return T.length >= 2 ? T : CONFIG.order.filter(k => (k.length > 1) === multi).slice(0, 6);
+}
+const noun = () => ({ letters: 'letter', teams: 'sound', words: 'word' })[S.content];
+function confusablesOf(k) {
+  if (S.content === 'teams') return CONFIG.teamConfusables[k] ?? [];
+  if (S.content === 'words') return tokens().filter(w => w !== k && w.length === k.length && [...w].filter((c, i) => c !== k[i]).length === 1);
+  return [...(CONFIG.confusables[k] ?? '')];
+}
+
+// ---------- progress: per-item stats → selection weights (spaced practice, roughly) ----------
+// Known items keep coming back, less often; missed and newly taught ones come up more.
+let STATS = {}; try { STATS = JSON.parse(store.get('stats', '{}')); } catch {}
+function mark(k, ok) {
+  const s = STATS[k] ??= { ok: 0, bad: 0, streak: 0 };
+  if (ok) { s.ok++; s.streak++; s.bad = Math.max(0, s.bad - 0.5); } else { s.bad++; s.streak = 0; }
+  store.set('stats', JSON.stringify(STATS));
+}
+function weight(k) {
+  const s = STATS[k], fresh = S.content !== 'words' && taughtList().slice(-CONFIG.newCount).includes(k) ? 2 : 1;
+  return fresh * (s ? Math.max(0.3, 1 + s.bad * 0.6 - Math.min(s.streak, 6) * 0.15) : 1.5);
+}
+function pickW(arr) {
+  const ws = arr.map(weight); let r = Math.random() * ws.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < arr.length; i++) if ((r -= ws[i]) <= 0) return arr[i];
+  return arr.at(-1);
+}
+const sampleW = (arr, n) => { const pool = [...arr], out = []; while (out.length < n && pool.length) { const k = pickW(pool); out.push(k); pool.splice(pool.indexOf(k), 1); } return out; };
+
+// ---------- voice: parent recordings first, TTS fallback ----------
+const REC = {};
+for (const k of new Set([...CONFIG.order, ...TEAM_KEYS, ...'abcdefghijklmnopqrstuvwxyz'])) { const v = store.get('rec.' + k); if (v) REC[k] = v; }
+const soundOf = g => CONFIG.teams[g]?.[0] ?? CONFIG.phonics[g]?.[0] ?? g;
+const soundPart = (g, pitch) => REC[g] ? { rec: g, pitch } : { text: soundOf(g), pitch };
+// Fred Talk (RWI's sounding out): "c - a - t", the child blends it into "cat".
+const fredParts = (w, pitch) => segment(w).flatMap((g, i) => i ? [{ pause: 250 }, soundPart(g, pitch)] : [soundPart(g, pitch)]);
+const article = k => CONFIG.anLetters.includes(k) ? 'an' : 'a';
+// What to say for an item on tap / merge / pop. ctx 'pick' = blob pick-up (words: sound out, then the word).
+function itemParts(k, pitch, ctx) {
+  if (S.content === 'words') {
+    const fred = S.sayStyle === 'sound' && !isTricky() && ctx === 'pick';
+    return fred ? [...fredParts(k, pitch), { pause: 300 }, { text: k, pitch }] : [{ text: k, pitch }];
+  }
+  const name = { text: CONFIG.names[k] ?? k.toUpperCase(), pitch }, word = (S.content === 'teams' ? CONFIG.teams : CONFIG.phonics)[k]?.[1];
+  if (S.sayStyle === 'word' && word) return S.content === 'letters' ? [{ text: `${k.toUpperCase()} is for ${word}`, pitch }] : [soundPart(k, pitch), { text: `is for ${word}`, pitch }];
+  if (S.sayStyle === 'name' && S.content === 'letters') return [name];
+  return [soundPart(k, pitch)];
+}
+// "Find a G" (name) / "Find" + sound / "Find" + Fred Talk (words). classic = "find all the".
+function requestParts(verb, k, classic) {
+  if (S.content === 'words') return S.sayStyle === 'sound' && !isTricky() ? [{ text: verb }, ...fredParts(k)] : [{ text: `${verb} ${k}` }];
+  if (S.sayStyle === 'name' && S.content === 'letters') return [{ text: classic ? `${verb} all the ${k.toUpperCase()}'s` : `${verb} ${article(k)} ${k.toUpperCase()}` }];
+  return [{ text: classic ? `${verb} all the` : verb }, soundPart(k)];
+}
+// Sequencer: parts play in order; a non-queued call cuts in. Chrome quirks: speak() right after cancel() can be
+// dropped (hence the 120ms gap); utterances can be GC'd mid-speech (lastUtterance); engine can wedge paused (resume()).
+let vq = Promise.resolve(), vgen = 0, curAudio, lastUtterance;
+function voice(parts, queue = false) {
+  if (!queue) { vgen++; window.speechSynthesis?.cancel(); curAudio?.pause(); vq = new Promise(r => setTimeout(r, 120)); }
+  const g = vgen;
+  vq = vq.then(async () => { for (const p of parts) { if (g !== vgen) return; await playPart(p); } });
+}
+const say = (text, queue = false, pitch) => voice([{ text, pitch }], queue);
+function playPart(p) {
+  return new Promise(res => {
+    if (p.pause) return setTimeout(res, p.pause);
+    const to = setTimeout(res, 6000), done = () => { clearTimeout(to); res(); }, s = CONFIG.speech;
+    if (p.rec) {  // playbackRate shifts pitch too, so big blobs sound deeper with recordings as well
+      const a = curAudio = new Audio(REC[p.rec]); a.preservesPitch = false;
+      a.playbackRate = Math.min(2, Math.max(0.5, (p.pitch ?? s.pitch) / s.pitch));
+      a.onended = a.onerror = a.onpause = done; a.play().catch(done); return;
+    }
+    if (!window.speechSynthesis) return done();
+    const ss = speechSynthesis, text = /[.!?]$/.test(p.text) ? p.text : p.text + '.';  // full stop: fuller, unclipped
+    const u = lastUtterance = new SpeechSynthesisUtterance(text);
+    Object.assign(u, { lang: s.lang, rate: s.rate, pitch: p.pitch ?? s.pitch, volume: 1 });
+    const v = ss.getVoices().find(v => v.lang === s.lang) || ss.getVoices().find(v => v.lang.startsWith('en'));
+    if (v) u.voice = v;
+    u.onend = u.onerror = done; ss.resume(); ss.speak(u);
+  });
+}
+
+// ---------- state ----------
+const S = { content: store.get('content', 'letters'), mode: store.get('mode', 'find'), kase: store.get('case', 'lower'), sayStyle: store.get('say', 'sound'), tiles: [], r0: 40, target: null, stars: 0, done: false };
+const board = $('#board');
+new ResizeObserver(() => { board.style.top = $("#bar").offsetHeight + "px"; dispatchEvent(new Event("resize")); }).observe($("#bar"));
+
+function caseOf(k) {
+  if (S.kase === 'upper') return k.toUpperCase();
+  if (S.kase === 'lower' || Math.random() < 0.5) return k;
+  return k.length > 1 ? k[0].toUpperCase() + k.slice(1) : k.toUpperCase();  // mixed: "Ship", "Sh", "G"
+}
+function makeTile(key, jitter = CONFIG.sizeJitter) {
+  const text = caseOf(key);
+  return { key, text, aspect: text.length === 1 ? 1 : 0.42 * text.length + 0.3, font: pickFont(text), color: pick(CONFIG.colors),
+           rot: rand(-CONFIG.rotJitter, CONFIG.rotJitter), scale: 1 + rand(-jitter, jitter), count: 1 };
+}
+const radius = t => Math.min(S.r0 * t.scale * Math.sqrt(t.count), Math.min(board.clientWidth, board.clientHeight) / 3, board.clientWidth / (2.2 * t.aspect));
+const hw = t => t.r * t.aspect;  // half-width; half-height is t.r
+// Edge-to-edge gap between two pill tiles, treated as rectangles (negative = overlap).
+const gapOf = (ax, ay, aw, ah, b) => Math.max(Math.abs(ax - b.x) - aw - hw(b), Math.abs(ay - b.y) - ah - b.r);
+
+// Mitchell's best-candidate: each tile takes the random candidate with the largest edge-to-edge gap.
+// Cheap, no-overlap-ish, good enough for ~30 tiles. Swap for Poisson disk if counts get large.
+function layout(tiles) {
+  const w = board.clientWidth, h = board.clientHeight;
+  S.r0 = Math.min(Math.sqrt(CONFIG.fill * w * h / (tiles.reduce((a, t) => a + t.aspect, 0) * Math.PI)), Math.min(w, h) / 6);
+  const placed = [];
+  for (const t of [...tiles].sort((a, b) => radius(b) - radius(a))) { place(t, placed); placed.push(t); }
+}
+function place(t, others) {
+  const w = board.clientWidth, h = board.clientHeight, r = radius(t), a = r * t.aspect; let best, bestGap = -Infinity;
+  for (let k = 0; k < 40; k++) {
+    const p = { x: rand(a, Math.max(a, w - a)), y: rand(r, Math.max(r, h - r)) };
+    const gap = Math.min(Infinity, ...others.map(q => gapOf(p.x, p.y, a, r, q)));
+    if (gap > bestGap) { bestGap = gap; best = p; }
+  }
+  Object.assign(t, best, { r });
+}
+// Push tiles overlapping t straight away from it (one pass; good enough as blobs grow one at a time).
+function nudge(t) {
+  const w = board.clientWidth, h = board.clientHeight;
+  for (const o of S.tiles) {
+    if (o === t) continue;
+    let dx = o.x - t.x, dy = o.y - t.y, d = Math.hypot(dx, dy);
+    if (gapOf(t.x, t.y, hw(t), t.r, o) >= 6) continue;
+    if (d < 1) { dx = 1; dy = 0; d = 1; }
+    for (let i = 0; i < 80 && gapOf(t.x, t.y, hw(t), t.r, o) < 6; i++) { o.x += dx / d * 6; o.y += dy / d * 6; }
+    o.x = Math.min(Math.max(o.x, hw(o)), w - hw(o)); o.y = Math.min(Math.max(o.y, o.r), h - o.r);
+    if (gapOf(t.x, t.y, hw(t), t.r, o) < 0) place(o, S.tiles.filter(x => x !== o));  // pinned at a wall: jump to free space
+    render(o);
+  }
+}
+function burst(t) {
+  S.tiles = S.tiles.filter(x => x !== t); S.stars++; updatePrompt(); sfx.burst();
+  for (let i = 0; i < 16; i++) {
+    const p = document.createElement('div'), a = i / 16 * 2 * Math.PI, d = t.r * rand(1.3, 2.2);
+    p.className = 'spark'; Object.assign(p.style, { left: t.x + 'px', top: t.y + 'px', background: pick(CONFIG.colors) });
+    board.appendChild(p);
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      Object.assign(p.style, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px) scale(.3)`, opacity: 0 })));
+    setTimeout(() => p.remove(), 700);
+  }
+  t.el.classList.remove('bubble'); t.el.classList.add('burst'); setTimeout(() => t.el.remove(), 450);
+}
+function render(t) {
+  if (!t.el) {
+    t.el = document.createElement('div'); t.el.className = 'tile'; t.el.innerHTML = '<span></span>';
+    t.el.tile = t; board.appendChild(t.el);
+  }
+  const s = t.el.style, sp = t.el.firstChild;
+  Object.assign(s, { left: t.x - hw(t) + 'px', top: t.y - t.r + 'px', width: 2 * hw(t) + 'px', height: 2 * t.r + 'px',
+                     borderRadius: t.r + 'px', fontSize: t.r * (t.text.length === 1 ? 1.25 : 1.05) + 'px' });
+  Object.assign(sp.style, { fontFamily: t.font, color: t.color, transform: `rotate(${t.rot}deg)` });
+  sp.textContent = t.text;
+}
+function flash(t, cls) { t.el.classList.remove(cls); void t.el.offsetWidth; t.el.classList.add(cls); }
+function removeTile(t) { t.el.remove(); S.tiles = S.tiles.filter(x => x !== t); }
+
+// ---------- modes ----------
+const shown = k => S.kase === 'lower' ? k : S.kase === 'upper' ? k.toUpperCase() : k.toUpperCase() + ' ' + k;
+const MODES = {
+  find: {
+    draggable: false,
+    canSpeak: () => true,
+    setup() {
+      const c = CONFIG.find, T = tokens();
+      S.asked = 0;
+      if (c.rotate) {
+        const n = Math.min(CONFIG.kinds, T.length), kinds = [pickW(T)];
+        while (kinds.length < n) {
+          const cf = confusablesOf(pick(kinds)).filter(k => T.includes(k)), k = cf.length && Math.random() < c.confusableRate ? pick(cf) : pickW(T);
+          if (!kinds.includes(k)) kinds.push(k);
+        }
+        const keys = [...kinds, ...kinds, ...Array.from({ length: Math.max(0, CONFIG.letters - 2 * n) }, () => pick(kinds))];
+        S.target = null; const tiles = shuffle(keys).map(k => makeTile(k)); S.tiles = tiles; MODES.find.next(); return tiles;
+      }
+      S.target = pickW(T.filter(k => k !== S.target));
+      const nT = randInt(c.targets), others = T.filter(k => k !== S.target), cf = confusablesOf(S.target);
+      const keys = Array.from({ length: CONFIG.letters }, (_, i) => i < nT ? S.target
+        : cf.length && Math.random() < c.confusableRate ? pick(cf) : pick(others));
+      return shuffle(keys).map(k => makeTile(k));
+    },
+    next() {  // rotate: new target among letters still unfound, different from the last if possible
+      const left = [...new Set(S.tiles.filter(x => !x.found).map(x => x.key))];
+      S.target = pickW(left.filter(k => k !== S.target).length ? left.filter(k => k !== S.target) : left);
+    },
+    prompt() {
+      const c = CONFIG.find, t = S.target;
+      if (c.rotate) return (CONFIG.showTarget ? `Find <b>${shown(t)}</b>` : `Find the ${noun()} you hear`) + ` <small>${S.asked}/${c.prompts}</small>`;
+      const left = S.tiles.filter(x => x.key === t && !x.found).length;
+      return (CONFIG.showTarget ? `Find all the <b>${shown(t)}</b>` : `Find all the ${noun()}s you hear`) + ` <small>${left} left</small>`;
+    },
+    speak(queue = false) { voice(requestParts('Find', S.target, !CONFIG.find.rotate), queue); },
+    onTap(t) {
+      const c = CONFIG.find;
+      if (t.found) return;
+      if (t.key === S.target) {
+        t.found = true; t.el.classList.add('found'); flash(t, 'pop'); sfx.ding(); mark(t.key, true);
+        if (CONFIG.speech.sayOnTap) voice(itemParts(t.key));
+        if (c.rotate) {
+          S.asked++;
+          if (S.asked >= c.prompts || S.tiles.every(x => x.found)) return win();
+          MODES.find.next(); MODES.find.speak(true);
+        } else if (S.tiles.every(x => x.key !== S.target || x.found)) return win();
+      } else {
+        flash(t, 'wiggle'); sfx.buzz(); mark(S.target, false);
+        if (CONFIG.speech.sayWrong) { voice(itemParts(t.key)); MODES.find.speak(true); }
+      }
+      updatePrompt();
+    },
+  },
+  blob: {
+    draggable: true,
+    canSpeak: () => !!S.popTarget,
+    group(k) {  // copies per letter ≈ letters/kinds, at least 2
+      const m = Math.max(2, Math.round(CONFIG.letters / CONFIG.kinds));
+      return Array.from({ length: randInt([Math.max(2, m - 1), m + 1]) }, () => makeTile(k, CONFIG.blob.sizeJitter));
+    },
+    setup() {
+      S.popTarget = null;
+      return shuffle(sampleW(tokens(), CONFIG.kinds).flatMap(MODES.blob.group));
+    },
+    spawn() {
+      const onScreen = new Set(S.tiles.map(x => x.key));
+      for (const t of MODES.blob.group(pickW(tokens().filter(k => !onScreen.has(k)).length ? tokens().filter(k => !onScreen.has(k)) : tokens()))) {
+        place(t, S.tiles); S.tiles.push(t); render(t); t.el.classList.add('spawn');
+      }
+    },
+    prompt() {
+      const k = S.popTarget;
+      if (!k) return `Push the same ${noun()}s together`;
+      return CONFIG.showTarget ? `Pop the <b>${shown(k)}</b>!` : `Pop the ${noun()} you hear!`;
+    },
+    speak(queue = false) { if (S.popTarget) voice(requestParts('Pop', S.popTarget), queue); },
+    // Speech pitch range is 0–2; some voices ignore pitch entirely.
+    pitch: t => Math.min(2, Math.max(0.4, CONFIG.speech.pitch * (S.r0 / t.r) ** CONFIG.blob.pitchPower)),
+    onPick(t) {
+      clearTimeout(S.pickTimer);
+      S.pickTimer = setTimeout(() => voice(itemParts(t.key, MODES.blob.pitch(t), 'pick')), CONFIG.blob.speakDelay);
+    },
+    maybeAsk() {
+      const ready = S.tiles.filter(x => x.ready);
+      if (S.popTarget || !ready.length || (ready.length < CONFIG.blob.popWhen && ready.length < S.tiles.length)) return;
+      S.popTarget = pick(ready).key; updatePrompt(); MODES.blob.speak(true);
+    },
+    tapFirst(t) {  // finished blobs are tapped (popped), not dragged
+      if (!t.ready) return false;
+      if (!S.popTarget) { flash(t, 'bubble'); return true; }
+      if (t.key !== S.popTarget) {
+        flash(t, 'wiggle'); sfx.buzz(); mark(S.popTarget, false); voice(itemParts(t.key, MODES.blob.pitch(t))); MODES.blob.speak(true);
+        return true;
+      }
+      const round = S.round;
+      mark(t.key, true); S.popTarget = null; voice(itemParts(t.key, MODES.blob.pitch(t))); burst(t);
+      MODES.blob.maybeAsk();
+      setTimeout(() => { if (round !== S.round) return; MODES.blob.spawn(); MODES.blob.maybeAsk(); }, 650);
+      return true;
+    },
+    onDrop(t, other) {
+      if (!other) return;
+      clearTimeout(S.pickTimer);
+      if (other.key !== t.key) { Object.assign(t, t.origin); flash(t, 'wiggle'); render(t); voice(itemParts(other.key, MODES.blob.pitch(other))); return; }
+      other.count += t.count; removeTile(t);
+      other.r = radius(other);
+      const w = board.clientWidth, h = board.clientHeight;
+      other.x = Math.min(Math.max(other.x, hw(other)), w - hw(other)); other.y = Math.min(Math.max(other.y, other.r), h - other.r);
+      render(other); nudge(other); flash(other, 'bubble'); sfx.blurb(other.count); voice(itemParts(other.key, MODES.blob.pitch(other)));
+      if (!CONFIG.blob.continuous) { if (new Set(S.tiles.map(x => x.key)).size === S.tiles.length) win(); return; }
+      if (S.tiles.some(x => x !== other && x.key === other.key)) return;
+      if (CONFIG.blob.popOnRequest) { other.ready = true; other.el.classList.add('ready'); MODES.blob.maybeAsk(); return; }
+      const round = S.round;  // skip if the round changed during the delay
+      setTimeout(() => round === S.round && burst(other), 450);
+      setTimeout(() => round === S.round && MODES.blob.spawn(), 1100);
+    },
+  },
+};
+const mode = () => MODES[S.mode];
+
+// ---------- round flow ----------
+function newRound() {
+  board.classList.remove('win'); board.innerHTML = ''; S.done = false; S.round = (S.round || 0) + 1;
+  clearTimeout(S.pickTimer);
+  S.tiles = mode().setup(); layout(S.tiles); S.tiles.forEach(render);
+  updatePrompt(); mode().speak?.();
+}
+function updatePrompt() { $('#sayBtn').hidden = !mode().canSpeak(); $('#prompt').innerHTML = mode().prompt(); $('#stars').textContent = S.stars ? '⭐' + S.stars : ''; }
+function win() {
+  S.done = true; S.stars++; updatePrompt(); sfx.win();
+  if (S.mode === 'find') setTimeout(() => say('Yay!', true), 80);
+  board.classList.add('win');
+  setTimeout(newRound, 2200);
+}
+
+// ---------- input ----------
+let drag = null;
+board.addEventListener('pointerdown', e => {
+  const t = e.target.closest('.tile')?.tile;
+  if (!t || S.done) return;
+  if (mode().tapFirst?.(t)) return;
+  if (!mode().draggable) return mode().onTap(t);
+  t.el.setPointerCapture(e.pointerId); t.el.classList.add('dragging');
+  drag = { t, dx: e.clientX - t.x, dy: e.clientY - t.y }; t.origin = { x: t.x, y: t.y };
+  mode().onPick?.(t);
+});
+board.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const t = drag.t; t.x = e.clientX - drag.dx; t.y = e.clientY - drag.dy; render(t);
+});
+board.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const t = drag.t; drag = null; t.el.classList.remove('dragging');
+  const hits = S.tiles.filter(o => o !== t && Math.abs(o.x - t.x) < Math.max(hw(o), hw(t)) && Math.abs(o.y - t.y) < Math.max(o.r, t.r));
+  hits.sort((a, b) => Math.hypot(a.x - t.x, a.y - t.y) - Math.hypot(b.x - t.x, b.y - t.y));
+  mode().onDrop(t, hits[0]);
+});
+
+function bindSeg(id, key, storeKey, onChange = newRound) {
+  const btns = [...document.querySelectorAll(`#${id} button`)];
+  const sync = () => btns.forEach(b => b.classList.toggle('on', b.dataset.v === S[key]));
+  btns.forEach(b => b.onclick = () => { S[key] = b.dataset.v; store.set(storeKey, S[key]); sync(); onChange(); });
+  sync();
+}
+bindSeg('contentSeg', 'content', 'content');
+bindSeg('modeSeg', 'mode', 'mode');
+bindSeg('caseSeg', 'kase', 'case');
+bindSeg('saySeg', 'sayStyle', 'say', () => voice(itemParts(tokens()[0])));
+$('#sayBtn').onclick = () => mode().speak();
+$('#newBtn').onclick = newRound;
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { layout(S.tiles); S.tiles.forEach(render); }, 200); });
+
+function buildSettings() {
+  const el = document.createElement('div'); el.id = 'settings'; el.hidden = true; document.body.appendChild(el);
+  const save = () => store.set('settings', JSON.stringify(Object.fromEntries(SETTINGS.map(([p]) => [p, cfgGet(p)]).filter(([p, v]) => v !== DEFAULTS[p]))));
+  for (const [path, label, min, max, step] of SETTINGS) {
+    const row = document.createElement('label'), bool = min === 'bool';
+    row.innerHTML = bool ? `<span>${label}</span><input type=checkbox>` : `<span>${label}</span><output></output><input type=range min=${min} max=${max} step=${step}>`;
+    const inp = row.querySelector('input'), out = row.querySelector('output');
+    const show = () => out && (out.textContent = path === 'wildRate' ? Math.round(inp.value * 100) + '%' : path === 'taught' ? CONFIG.order[inp.value - 1] : inp.value);
+    if (bool) inp.checked = cfgGet(path); else { inp.value = cfgGet(path); show(); }
+    inp.oninput = show;
+    inp.onchange = () => { cfgSet(path, bool ? inp.checked : +inp.value); save(); newRound(); };
+    el.appendChild(row);
+  }
+  const btn = (label, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = label;
+    Object.assign(b.style, { fontSize: '14px', margin: '4px 6px 0 0' }); b.onclick = fn; el.appendChild(b); };
+  btn('🎙 Record sounds', () => { el.hidden = true; openRecorder(); });
+  btn('Reset settings', () => { store.set('settings', '{}'); location.reload(); });
+  btn('Reset progress', () => { STATS = {}; store.del('stats'); });
+  $('#setBtn').onclick = () => { el.style.top = $('#bar').offsetHeight + 6 + 'px'; el.hidden = !el.hidden; };
+  board.addEventListener('pointerdown', () => el.hidden = true);
+}
+buildSettings();
+
+// ---------- recorder: parent records each sound once; used instead of TTS wherever present ----------
+function openRecorder() {
+  let el = $('#recorder');
+  if (!el) { el = document.createElement('div'); el.id = 'recorder'; document.body.appendChild(el); }
+  const keys = [...new Set([...CONFIG.order, 'ck'])];
+  const ok = window.isSecureContext && navigator.mediaDevices && window.MediaRecorder;
+  const draw = () => {
+    el.innerHTML = `<div class=rhead><b>Record sounds</b><span>Pure sounds, the way school says them: "mmm" not "muh". Tap ●, say it, wait.</span><button class=btn data-close>✕</button></div>`
+      + (ok ? '' : '<p class=warn>Recording needs https (the published site) or localhost. Playback of saved sounds still works.</p>')
+      + `<div class=rgrid>${keys.map(k => `<div class="rcell${REC[k] ? ' has' : ''}"><span>${k}</span><button data-rec="${k}">●</button>`
+      + (REC[k] ? `<button data-play="${k}">▶</button><button data-del="${k}">✕</button>` : '') + '</div>').join('')}</div>`;
+  };
+  el.onclick = e => {
+    const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if ('close' in d) el.hidden = true;
+    else if (d.play) voice([{ rec: d.play }]);
+    else if (d.del) { delete REC[d.del]; store.del('rec.' + d.del); draw(); }
+    else if (d.rec && ok) record(d.rec, b).then(() => { draw(); voice([{ rec: d.rec }]); });
+  };
+  draw(); el.hidden = false;
+}
+async function record(k, btn) {
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { btn.textContent = '🚫'; return; }
+  const mr = new MediaRecorder(stream), chunks = [];
+  mr.ondataavailable = e => chunks.push(e.data);
+  const saved = new Promise(res => mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    const fr = new FileReader();
+    fr.onload = () => { REC[k] = fr.result; store.set('rec.' + k, fr.result); res(); };
+    fr.readAsDataURL(new Blob(chunks, { type: mr.mimeType }));
+  });
+  mr.start(); btn.textContent = '■'; btn.classList.add('on');
+  const stop = e => { e?.stopPropagation(); if (mr.state === 'recording') mr.stop(); };
+  btn.onclick = stop; setTimeout(stop, CONFIG.recordMs);
+  return saved;
+}
+
+// ---------- boot ----------
+// One <link> per family: a bad name 400s only itself, not the whole batch.
+const loadFont = spec => new Promise(res => {
+  const l = document.createElement('link'); l.rel = 'stylesheet';
+  l.href = `https://fonts.googleapis.com/css2?family=${spec.replace(/ /g, '+')}&display=block`;
+  l.onload = () => document.fonts.load(`40px "${fontName(spec)}"`, 'aAgG').then(res, res); l.onerror = res;
+  document.head.appendChild(l);
+});
+const fontsReady = Promise.race([
+  Promise.all([...CONFIG.googleFonts, ...CONFIG.wildFonts].map(loadFont)),
+  new Promise(r => setTimeout(r, 5000)),
+]);
+fontsReady.then(() => {
+  const b = $('#startBtn'); b.textContent = '▶ Play';
+  b.onclick = () => {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    $('#overlay').remove(); newRound();
+  };
+});
+</script>
+</body>
+</html>
+{% endraw %}
