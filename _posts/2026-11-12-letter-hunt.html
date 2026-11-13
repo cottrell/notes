@@ -85,6 +85,7 @@ Prior art (searched 2026-11-12). None combines many-font letter hunt + drag-merg
   <div id="prompt"></div>
   <button class="btn" id="sayBtn" title="Say again">🔊</button>
   <button class="btn" id="newBtn" title="New round">↻</button>
+  <button class="btn" id="fsBtn" title="Toggle Fullscreen (F)">⛶</button>
   <span id="stars"></span>
   <button class="btn" id="setBtn" title="Settings">⚙</button>
 </div>
@@ -637,6 +638,21 @@ const fontsReady = Promise.race([
   Promise.all([...CONFIG.googleFonts, ...CONFIG.wildFonts].map(loadFont)),
   new Promise(r => setTimeout(r, 5000)),
 ]);
+function toggleFullScreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else if (document.exitFullscreen) {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+document.addEventListener('keydown', (e) => {
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key === 'f' || e.key === 'F') {
+    e.preventDefault();
+    toggleFullScreen();
+  }
+});
+$('#fsBtn').onclick = toggleFullScreen;
 fontsReady.then(() => {
   const b = $('#startBtn'); b.textContent = '▶ Play';
   b.onclick = () => {

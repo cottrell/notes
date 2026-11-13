@@ -10,38 +10,53 @@ categories: [vibecoding]
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        body {
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 10px;
+            box-sizing: border-box;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .game-container {
-            max-width: 500px;
-            margin: 20px auto;
+            max-width: 520px;
+            width: 100%;
+            margin: auto;
             text-align: center;
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            padding: 20px;
+            padding: 14px 20px;
             background: #1a1a2e;
             border-radius: 15px;
             color: #fff;
+            box-sizing: border-box;
         }
 
         .game-container h2 {
             color: #4CAF50;
-            margin-bottom: 20px;
+            margin: 0 0 8px 0;
+            font-size: 22px;
         }
 
         .controls {
-            margin: 15px 0;
+            margin: 6px 0;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 10px;
+            align-items: center;
+            gap: 6px;
         }
 
         .controls label {
-            font-size: 16px;
+            font-size: 14px;
             color: #aaa;
         }
 
         .control-btn {
-            padding: 8px 16px;
-            font-size: 16px;
+            padding: 4px 10px;
+            font-size: 13px;
             border: 2px solid #444;
             border-radius: 8px;
             cursor: pointer;
@@ -55,20 +70,24 @@ categories: [vibecoding]
         }
 
         .prompt-area {
-            font-size: 120px;
-            margin: 30px 0;
-            min-height: 140px;
+            font-size: clamp(64px, 14vh, 90px);
+            line-height: 1.1;
+            margin: 8px 0 4px 0;
+            min-height: clamp(70px, 15vh, 100px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .speak-btn {
-            padding: 12px 24px;
-            font-size: 20px;
+            padding: 6px 14px;
+            font-size: 15px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #2196F3;
             color: white;
             cursor: pointer;
-            margin: 8px;
+            margin: 4px;
         }
 
         .speak-btn:hover {
@@ -79,30 +98,30 @@ categories: [vibecoding]
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 12px;
-            margin: 25px 0;
-            padding: 20px;
-            border: 3px solid #4CAF50;
-            border-radius: 15px;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 12px;
             background: rgba(76, 175, 80, 0.1);
         }
 
         .choice-btn {
-            padding: 18px 28px;
-            font-size: 26px;
+            padding: 10px 20px;
+            font-size: 20px;
             font-weight: bold;
-            border: 3px solid #4CAF50;
-            border-radius: 12px;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
             cursor: pointer;
             background: linear-gradient(145deg, #3a5a3e, #2d4a31);
             color: #fff;
-            min-width: 100px;
+            min-width: 90px;
             transition: transform 0.1s, background 0.1s, box-shadow 0.1s;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
         .choice-btn:hover {
-            transform: scale(1.08);
+            transform: scale(1.05);
             background: linear-gradient(145deg, #4a7a4e, #3d6a41);
             box-shadow: 0 6px 12px rgba(76, 175, 80, 0.4);
         }
@@ -112,26 +131,34 @@ categories: [vibecoding]
         }
 
         .feedback {
-            font-size: 42px;
-            min-height: 50px;
-            margin: 15px 0;
+            font-size: 26px;
+            min-height: 32px;
+            margin: 6px 0;
+            font-weight: bold;
         }
 
         .score {
-            font-size: 22px;
+            font-size: 16px;
             color: #aaa;
-            margin: 15px 0;
+            margin: 6px 0;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
         }
 
         .next-btn {
-            padding: 12px 24px;
-            font-size: 20px;
+            padding: 6px 16px;
+            font-size: 15px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #4CAF50;
             color: white;
             cursor: pointer;
-            margin: 8px;
         }
 
         .next-btn:hover {
@@ -139,14 +166,13 @@ categories: [vibecoding]
         }
 
         .words-toggle {
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 5px 12px;
+            font-size: 13px;
             border: 2px solid #444;
             border-radius: 8px;
             cursor: pointer;
             background: #2a2a4e;
             color: #aaa;
-            margin-top: 15px;
         }
 
         .words-toggle:hover {
@@ -155,12 +181,12 @@ categories: [vibecoding]
 
         .word-list {
             display: none;
-            max-height: 500px;
+            max-height: 220px;
             overflow-y: auto;
             background: #2a2a4e;
             border-radius: 10px;
-            padding: 15px;
-            margin-top: 10px;
+            padding: 10px;
+            margin-top: 8px;
             text-align: left;
         }
 
@@ -170,33 +196,33 @@ categories: [vibecoding]
 
         .word-list-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 6px;
         }
 
         .word-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 16px;
-            padding: 4px 8px;
+            gap: 4px;
+            font-size: 14px;
+            padding: 3px 6px;
             background: #1a1a2e;
             border-radius: 6px;
         }
 
         .word-item .emoji {
-            font-size: 20px;
+            font-size: 16px;
         }
 
         .edit-section {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #444;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #333;
         }
 
         .edit-btn {
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 5px 12px;
+            font-size: 13px;
             border: 2px solid #444;
             border-radius: 8px;
             cursor: pointer;
@@ -211,7 +237,7 @@ categories: [vibecoding]
 
         .edit-area {
             display: none;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         .edit-area.show {
@@ -220,19 +246,20 @@ categories: [vibecoding]
 
         .edit-area textarea {
             width: 100%;
-            height: 150px;
+            height: 120px;
             background: #1a1a2e;
             color: #fff;
             border: 2px solid #444;
             border-radius: 8px;
-            padding: 10px;
+            padding: 8px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
+            box-sizing: border-box;
             resize: vertical;
         }
 
         .edit-area .btn-row {
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             gap: 8px;
             justify-content: center;
@@ -241,24 +268,35 @@ categories: [vibecoding]
         .custom-badge {
             background: #9c27b0;
             color: white;
-            padding: 2px 8px;
+            padding: 1px 6px;
             border-radius: 10px;
-            font-size: 12px;
-            margin-left: 8px;
+            font-size: 11px;
+            margin-left: 6px;
+        }
+
+        .color-picker-section {
+            margin-top: 8px;
+        }
+
+        .color-picker-section h3 {
+            font-size: 13px;
+            margin: 4px 0 2px 0;
+            color: #888;
+            font-weight: normal;
         }
 
         .color-picker {
             display: flex;
             gap: 8px;
             justify-content: center;
-            margin-top: 15px;
+            margin-top: 4px;
         }
 
         .color-btn {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            border: 3px solid transparent;
+            border: 2px solid transparent;
             cursor: pointer;
             transition: transform 0.1s, border-color 0.1s;
         }
@@ -266,12 +304,10 @@ categories: [vibecoding]
         .color-btn:hover {
             transform: scale(1.15);
         }
-        body {
-            background-color: #f0f0f0;
-        }
 
         .color-btn.active {
-            border-color: #000;
+            border-color: #fff;
+            outline: 2px solid #555;
         }
 
         /* Theme backgrounds */
@@ -334,9 +370,10 @@ categories: [vibecoding]
 
     <div class="score">Score: <span id="score">0</span> / <span id="tries">0</span></div>
 
-    <button class="next-btn" onclick="nextRound()">Next Word</button>
-
-    <button class="words-toggle" onclick="toggleWordList()">Show Words (<span id="word-count">28</span>)</button>
+    <div class="action-row">
+        <button class="next-btn" onclick="nextRound()">Next Word</button>
+        <button class="words-toggle" onclick="toggleWordList()">Show Words (<span id="word-count">28</span>)</button>
+    </div>
     <div class="word-list" id="word-list">
         <div class="word-list-grid" id="word-list-grid"></div>
     </div>
@@ -662,15 +699,36 @@ function shuffle(arr) {
 
 function speakWord(word, callback) {
     const text = word || (currentWord ? currentWord.word : null);
-    if (!text) return;
+    if (!text) {
+        if (callback) callback();
+        return;
+    }
+    if (!('speechSynthesis' in window)) {
+        if (callback) setTimeout(callback, 500);
+        return;
+    }
     // Cancel any ongoing speech to prevent queuing
     speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.2;
-    if (callback) {
-        utterance.onend = callback;
+
+    let finished = false;
+    const done = () => {
+        if (finished) return;
+        finished = true;
+        if (callback) callback();
+    };
+
+    utterance.onend = done;
+    utterance.onerror = done;
+    // Fallback timer in case speech synthesis hangs or onend never fires
+    setTimeout(done, 1500);
+
+    try {
+        speechSynthesis.speak(utterance);
+    } catch (e) {
+        done();
     }
-    speechSynthesis.speak(utterance);
 }
 
 let isProcessing = false;
@@ -774,6 +832,25 @@ themePicker.addEventListener('click', (event) => {
         if (theme) {
             setTheme(theme);
         }
+    }
+});
+
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    // Ignore when typing in textarea or input fields
+    if (['TEXTAREA', 'INPUT'].includes(e.target.tagName)) return;
+    if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullScreen();
     }
 });
 
